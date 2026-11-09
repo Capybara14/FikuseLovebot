@@ -1,12 +1,17 @@
-import json, os, threading, signal, time, heapq, sys
+import json, os, threading, signal, time, heapq, sys, base64
 
+import requests
+import io
+from PIL import Image
 import telebot
 from telebot import types
 from dotenv import load_dotenv
 
 load_dotenv()
+EMOJI_TEMPLATE = "https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/{code}.png"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 BOT_USERNAME = os.getenv("BOT_USERNAME")
+IMGBB_KEY = os.getenv("IMGBB_KEY")
 FILE_COMMANDS_PATH = "commands.json"
 FILE_USERS_PATH = "users.json"
 LOCK = threading.Lock()
@@ -143,12 +148,13 @@ def handle_inline(query):
                     types.InlineQueryResultArticle(
                         id=cmd["id"],
                         title=cmd["title"],
-                        description=cmd["desc"],
+                        description=cmd["desc"] + " @username",
                         input_message_content=types.InputTextMessageContent(emoji +
                                                                             f"[{user_first_name}](https://t.me/{user_name}) " +
                                                                             cmd["text_inquery"],
                                                                             parse_mode="Markdown",
                                                                             disable_web_page_preview=True),
+                        thumbnail_url=cmd.get("thumb_url") or EMOJI_TEMPLATE.format(code=f"{ord(emoji[0]):x}"),
                         reply_markup=inquery_keyboard(cmd["id"], user_name)
                     )
                 )
@@ -166,6 +172,7 @@ def handle_inline(query):
                                                                             parse_mode="Markdown",
                                                                             disable_web_page_preview=True
                                                                             ),
+                        thumbnail_url=cmd.get("thumb_url") or EMOJI_TEMPLATE.format(code=f"{ord(emoji[0]):x}"),
                         reply_markup=response_keyboard(user_name, cmd["id"])
                     )
                 )
@@ -210,13 +217,13 @@ def button_worker(call):
 
     elif parts[0] == "btn_add_command":
         if len(commands_cache.get(str(call.from_user.id), [])) < 10:
-            bot.register_next_step_handler_by_chat_id(call.chat.id, enter_the_name)
-            bot.edit_message_text(
+            msg = bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
                 text="*Введите название своей команды*\n\n_(Пример: _`Поцелуй`_)_",
                 parse_mode="Markdown"
             )
+            bot.register_next_step_handler(msg, enter_the_name)
         else:
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
@@ -368,13 +375,28 @@ def enter_the_name(message):
 
 
 def enter_the_emoji(message, new_command):
-    emoji = clean_md(message.text)
-    new_command["title"] = emoji + " " + new_command["title"]
+    new_command["title"] = f"{clean_md(message.text)} {new_command['title']}"
     msg = bot.reply_to(
         message,
-        "*Введите описание команды*\n\n_(После него будет ник цели действия. Пример: _`Расцеловать`_)_",
+        "*Отправьте стикер для команды*\n\n _(Или напишите /skip для пропуска)_",
         parse_mode="Markdown"
     )
+    bot.register_next_step_handler(msg, enter_the_sticker, new_command)
+
+
+def enter_the_sticker(message, new_command):
+    thumb_url = None
+    if message.content_type == "sticker":
+        try:
+            file_info = bot.get_file(message.sticker.file_id)
+            raw = bot.download_file(file_info.file_path)
+            thumb_url = process_and_upload_sticker(raw)
+        except Exception:
+            pass
+    new_command["thumb_url"] = thumb_url
+    msg = bot.reply_to(message,
+                       "*Введите описание команды*\n\n_(После него будет ник цели действия. Пример: _`Расцеловать`_)_",
+                       parse_mode="Markdown")
     bot.register_next_step_handler(msg, enter_the_description, new_command)
 
 
@@ -456,6 +478,25 @@ def successfully_create(call):
 # endregion
 
 # region РАБОТА С ФАЙЛАМИ
+
+# превращение стикера в правильную пнг и загрузка на сервак
+def process_and_upload_sticker(raw_bytes):
+    try:
+        img = Image.open(io.BytesIO(raw_bytes)).convert("RGBA")
+        img.thumbnail((128, 128))
+        canvas = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
+        canvas.paste(img, ((128 - img.width) // 2, (128 - img.height) // 2), mask=img)
+
+        out = io.BytesIO()
+        canvas.save(out, format="PNG")
+
+        res = requests.post(
+            "https://api.imgbb.com/1/upload",
+            data={"key": IMGBB_KEY,"image": base64.b64encode(out.getvalue()).decode("utf-8")},timeout=10).json()
+        return res.get("data", {}).get("url")
+    except Exception:
+        return None
+
 
 # Добавляет ферстнейм и юзернейм в кеш
 def save_user(user_name: str, user_first_name: str):
