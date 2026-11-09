@@ -378,7 +378,7 @@ def enter_the_emoji(message, new_command):
     new_command["title"] = f"{clean_md(message.text)} {new_command['title']}"
     msg = bot.reply_to(
         message,
-        "*Отправьте стикер для команды*\n\n_(Или напишите /skip для пропуска)_",
+        "*Отправьте стикер для иконки команды*\n\n_(Или напишите /skip для пропуска)_",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_the_sticker, new_command)
@@ -395,7 +395,7 @@ def enter_the_sticker(message, new_command):
             pass
     new_command["thumb_url"] = thumb_url
     msg = bot.reply_to(message,
-                       "*Введите описание команды*\n\n_(После него будет ник цели действия. Пример: _`Расцеловать`_)_",
+                       "*Введите описание команды*\n\n_(После него будет ник цели действия. Пример: _`Поцеловать`_)_",
                        parse_mode="Markdown")
     bot.register_next_step_handler(msg, enter_the_description, new_command)
 
@@ -405,7 +405,7 @@ def enter_the_description(message, new_command):
     new_command["desc"] = clean_md(message.text)
     msg = bot.reply_to(
         message,
-        "*Введите текст запроса на действие*\n\n_(Перед ним будет твой ник. Пример: _`хочет целоваться`_)_",
+        "*Введите текст запроса на действие*\n\n_(Перед ним будет твой ник. Пример: _`хочет поцелуй`_)_",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_text_inquery, new_command)
@@ -427,7 +427,7 @@ def enter_text_response(message, new_command):
     new_command["text_response"] = clean_md(message.text).lower()
     msg = bot.reply_to(
         message,
-        "*Введите текст отказа от действия*\n\n_(Перед ним будет ник того, кто отклонил. Пример: _`не хочет целовашек`_)_",
+        "*Введите текст отказа от действия*\n\n_(Перед ним будет ник того, кто отклонил. Пример: _`не хочет целоваться`_)_",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, final_check, new_command)
