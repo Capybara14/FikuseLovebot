@@ -439,9 +439,11 @@ def final_check(message, new_command):
     new_command["text_deny"] = clean_md(message.text).lower()
     user_id = str(message.from_user.id)
 
-    if user_id not in commands_cache:
+    if user_id not in commands_cache or commands_cache[user_id] == []:
         commands_cache[user_id] = []
-    commands_max_num = max([int(i["id"].split("_")[1]) for i in commands_cache[user_id]])+1
+        commands_max_num=0
+    else:
+        commands_max_num = max([int(i["id"].split("_")[1]) for i in commands_cache[user_id]])+1
     print(commands_max_num)
     commands_cache[user_id].append(new_command | {"id": f"{user_id}_{commands_max_num}", "uses_count": "0"})
     bot_message = bot.reply_to(
