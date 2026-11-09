@@ -102,7 +102,7 @@ def cancel_worker(message):
 @bot.message_handler(commands=['refresh'])
 def refresh_worker(message):
     top_calculator(False, message.from_user.id)
-    bot.reply_to(message, "*Команды успешно отсортированы*", parse_mode="Markdown")
+    bot.reply_to(message, "*👾  Команды успешно отсортированы*", parse_mode="Markdown")
 
 
 # Обработчик инлайн режима
