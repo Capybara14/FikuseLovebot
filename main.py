@@ -1,6 +1,4 @@
-import json, os, threading
-import time
-import heapq
+import json, os, threading, signal, time, heapq, sys
 
 import telebot
 from telebot import types
@@ -52,7 +50,8 @@ def start_worker(message):
     parts = message.text.split()
 
     if len(parts) == 1:
-        bot.reply_to(message, f'👋  *Привет! Это бот для RP команд.*\n\nПросто напиши `@{BOT_USERNAME}` и выбирай команду!',
+        bot.reply_to(message,
+                     f'👋  *Привет! Это бот для RP команд.*\n\nПросто напиши `@{BOT_USERNAME}` и выбирай команду!',
                      parse_mode="Markdown")
     elif parts[1] == "instruction":
         bot.reply_to(message,
@@ -200,30 +199,30 @@ def button_worker(call):
     elif parts[0] == "btn_deny":
         cmd_id = parts[1]
         author_msg_user_name = parts[2]
-        author_msg_first_name = users_cache.get(author_msg_user_name, author_msg_user_name)
         cmd = find_cmd(cmd_id)
         emoji = "❌ | "
 
         if call.from_user.username != parts[2]:
-            text = emoji + f"[{author_msg_first_name}](https://t.me/{author_msg_user_name}) " + cmd["text_deny"]
+            text = emoji + f"[{call.from_user.first_name}](https://t.me/{call.from_user.username}) " + cmd["text_deny"]
             bot.edit_message_text(text, inline_message_id=call.inline_message_id,
                                   reply_markup=response_keyboard(author_msg_user_name, cmd_id),
                                   parse_mode="Markdown", disable_web_page_preview=True)
 
     elif parts[0] == "btn_add_command":
         if len(commands_cache.get(str(call.from_user.id), [])) < 10:
-            msg = bot.edit_message_text(
+            bot.register_next_step_handler_by_chat_id(call.chat.id, enter_the_name)
+            bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
                 text="*Введите название своей команды*\n\n_(Пример: _`Поцелуй`_)_",
                 parse_mode="Markdown"
             )
-            bot.register_next_step_handler(msg, enter_the_name)
         else:
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                text="☹️  *Вы достигли максимального числа команд*", reply_markup=back_keyboard(call.message.message_id),
+                text="☹️  *Вы достигли максимального числа команд*",
+                reply_markup=back_keyboard(call.message.message_id),
                 parse_mode="Markdown"
             )
     elif parts[0] == "btn_all_right":
@@ -468,8 +467,8 @@ def save_user(user_name: str, user_first_name: str):
 
 # Демон поток, который синхронизирует озу и пзу, кроме того, заставляет пересчитать топы
 def file_saver():
+    global is_dirty
     top_calculator(True)
-    time.sleep(TIMEOUT)
     while True:
         if is_dirty:
             try:
@@ -481,6 +480,7 @@ def file_saver():
                     with open(FILE_COMMANDS_PATH + ".tmp", "w", encoding="utf-8") as f:
                         json.dump(commands_cache, f, ensure_ascii=False, indent=2)
                     os.replace(FILE_COMMANDS_PATH + ".tmp", FILE_COMMANDS_PATH)
+                    is_dirty = False
             except Exception as e:
                 print(f"Ошибка фонового сохранения: {e}")
         time.sleep(TIMEOUT)
@@ -500,8 +500,25 @@ def top_calculator(is_top=False, user_id=None):
             commands_cache[user_id] = sorted(commands_cache[user_id], key=lambda x: int(x["uses_count"]), reverse=True)
 
 
+# сброс озу в пзу по кнопке остановки
+def handle_exit(signum, frame):
+    with open(FILE_USERS_PATH + ".tmp", "w", encoding="utf-8") as f:
+        json.dump(users_cache, f, ensure_ascii=False, indent=2)
+    os.replace(FILE_USERS_PATH + ".tmp", FILE_USERS_PATH)
+    with open(FILE_COMMANDS_PATH + ".tmp", "w", encoding="utf-8") as f:
+        json.dump(commands_cache, f, ensure_ascii=False, indent=2)
+    os.replace(FILE_COMMANDS_PATH + ".tmp", FILE_COMMANDS_PATH)
+
+    bot.stop_polling()
+    sys.exit(0)
+
+
 # endregion
 
 t = threading.Thread(target=file_saver, daemon=True)
 t.start()
+
+signal.signal(signal.SIGTERM, handle_exit)
+signal.signal(signal.SIGINT, handle_exit)
+
 bot.infinity_polling()
