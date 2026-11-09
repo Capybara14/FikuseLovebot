@@ -50,9 +50,14 @@ while True:
 def start_worker(message):
     save_user(message.from_user.username, message.from_user.first_name)
     parts = message.text.split()
+
     if len(parts) == 1:
+        bot.reply_to(message, f'👋  *Привет! Это бот для RP команд.*\n\nПросто напиши `@{BOT_USERNAME}` и выбирай команду!',
+                     parse_mode="Markdown")
+    elif parts[1] == "instruction":
         bot.reply_to(message,
-                     f'Привет! Это бот для ролиплей команд, просто напиши @{BOT_USERNAME} и выбирай команду. Или создай свою!')
+                     "*📋  Инструкция:*\n\n   • При использовании можно указать юзернейм цели, тогда подтверждение не потребуется\n   • Для просмотра, создания и удаления собственных команд, используй /my\\_commands\n   • В списке доступных тебе команд всегда отображаются сначала твои, потом общие, отсортированные по частоте использования\n   • Рейтинг самых используемых команд среди всех обновляется раз в 10 минут, а самых используемых среди твоих — после использования /refresh (аналогичная функция есть в меню команд)",
+                     parse_mode="Markdown")
     else:
         option_parts = parts[1].split("_")
         user_id = option_parts[0]
@@ -61,7 +66,7 @@ def start_worker(message):
         bot.delete_message(message.chat.id, message.message_id)
         cmd = find_cmd(cmd_id)
         bot.edit_message_text(
-            f"*Детали команды:*\n\n"
+            f"*👀  Детали команды:*\n\n"
             f"   • _Название:_ {cmd['title']}\n"
             f"   • _Описание:_ {cmd['desc']}\n"
             f"   • _Текст запроса:_ {cmd['text_inquery']}\n"
@@ -78,10 +83,11 @@ def my_commands(message):
     save_user(message.from_user.username, message.from_user.first_name)
 
     bot_message = bot.reply_to(message, "_Загрузка команд..._", parse_mode="Markdown")
-    if commands_cache.get(str(message.from_user.id), None) is None or len(commands_cache[str(message.from_user.id)]) == 0:
-        text = "*У вас ещё нет команд, выберите действие*"
+    if commands_cache.get(str(message.from_user.id), None) is None or len(
+            commands_cache[str(message.from_user.id)]) == 0:
+        text = "😶  *У вас ещё нет команд, выберите действие*"
     else:
-        text = f"*Ваши команды:*\n\n"
+        text = f"📃  *Ваши команды:*\n\n"
         for cmd in commands_cache[str(message.from_user.id)]:
             text += f"   — {cmd["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd["id"]}_{bot_message.message_id}))\n\n"
     bot.edit_message_text(text, message.chat.id, bot_message.message_id, parse_mode="Markdown",
@@ -164,7 +170,9 @@ def handle_inline(query):
                         reply_markup=response_keyboard(user_name, cmd["id"])
                     )
                 )
-    bot.answer_inline_query(query.id, results, cache_time=1)
+    bot.answer_inline_query(query.id, results, switch_pm_text="❤️ Инструкция",
+                            switch_pm_parameter="instruction",
+                            cache_time=1)
 
 
 # Обработчик нажатий кнопок
@@ -215,7 +223,7 @@ def button_worker(call):
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                text="☹️ *Вы достигли максимального числа команд*", reply_markup=back_keyboard(call.message.message_id),
+                text="☹️  *Вы достигли максимального числа команд*", reply_markup=back_keyboard(call.message.message_id),
                 parse_mode="Markdown"
             )
     elif parts[0] == "btn_all_right":
@@ -231,9 +239,9 @@ def button_worker(call):
             bot_message = parts[1]
 
         if commands_cache.get(str(call.from_user.id), None) is None or len(commands_cache[str(call.from_user.id)]) == 0:
-            text = "*У вас ещё нет команд, выберите действие*"
+            text = "😶  *У вас ещё нет команд, выберите действие*"
         else:
-            text = f"*Ваши команды:*\n\n"
+            text = f"📃  *Ваши команды:*\n\n"
             for cmd_id in commands_cache[str(call.from_user.id)]:
                 text += f"   — {cmd_id["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd_id["id"]}_{bot_message}))\n\n"
         bot.edit_message_text(
@@ -262,7 +270,7 @@ def button_worker(call):
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="*Команды успешно отсортированы*", reply_markup=back_keyboard(call.message.message_id),
+            text="*👾  Команды успешно отсортированы*", reply_markup=back_keyboard(call.message.message_id),
             parse_mode="Markdown")
 
 
