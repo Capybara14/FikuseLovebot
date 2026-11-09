@@ -216,7 +216,7 @@ def button_worker(call):
                                   parse_mode="Markdown", disable_web_page_preview=True)
 
     elif parts[0] == "btn_add_command":
-        if len(commands_cache.get(str(call.from_user.id), [])) < 10:
+        if len(commands_cache.get(str(call.from_user.id), [])) < 30:
             msg = bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
@@ -441,8 +441,8 @@ def final_check(message, new_command):
 
     if user_id not in commands_cache:
         commands_cache[user_id] = []
-    commands_count = len(commands_cache.get(user_id, []))
-    commands_cache[user_id].append(new_command | {"id": f"{user_id}_{commands_count}", "uses_count": "0"})
+    commands_max_num = max([i["id"].split("_")[1] for i in commands_cache[user_id]])
+    commands_cache[user_id].append(new_command | {"id": f"{user_id}_{commands_max_num}", "uses_count": "0"})
     bot_message = bot.reply_to(
         message,
         "_Сохранение данных..._",
@@ -456,7 +456,7 @@ def final_check(message, new_command):
              f"   • _Отказ:_ {new_command['text_deny']}\n",
         chat_id=bot_message.chat.id,
         message_id=bot_message.message_id,
-        reply_markup=final_step_keyboard(f"{user_id}_{commands_count}", bot_message.message_id),
+        reply_markup=final_step_keyboard(f"{user_id}_{commands_max_num}", bot_message.message_id),
         parse_mode="Markdown"
     )
 
