@@ -405,7 +405,7 @@ def enter_the_description(message, new_command):
     new_command["desc"] = clean_md(message.text)
     msg = bot.reply_to(
         message,
-        "*Введите текст запроса на действие*\n\n_(Перед ним будет твой ник. Пример: _`хочет поцелуй`_)_",
+        "*Введите текст запроса на действие*\n\n_(Перед ним будет твой ник. Пример: _`хочет поцеловать`_)_",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_text_inquery, new_command)
