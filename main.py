@@ -441,7 +441,7 @@ def final_check(message, new_command):
 
     if user_id not in commands_cache:
         commands_cache[user_id] = []
-    commands_max_num = max([i["id"].split("_")[1] for i in commands_cache[user_id]])
+    commands_max_num = max([i["id"].split("_")[1] for i in commands_cache[user_id]])+1
     commands_cache[user_id].append(new_command | {"id": f"{user_id}_{commands_max_num}", "uses_count": "0"})
     bot_message = bot.reply_to(
         message,
