@@ -378,7 +378,7 @@ def enter_the_emoji(message, new_command):
     new_command["title"] = f"{clean_md(message.text)} {new_command['title']}"
     msg = bot.reply_to(
         message,
-        "*Отправьте стикер для команды*\n\n _(Или напишите /skip для пропуска)_",
+        "*Отправьте стикер для команды*\n\n_(Или напишите /skip для пропуска)_",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_the_sticker, new_command)
