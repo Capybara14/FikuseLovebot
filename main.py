@@ -139,9 +139,10 @@ def handle_inline(query):
             recipient_user_name = parts[-1][1:]
             user_input_search = " ".join(parts[:-1])
 
+    recipient_first_name = recipient_user_name
     for user in users_cache:
         if users_cache[user].get("user_name") == recipient_user_name:
-            recipient_first_name = users_cache[user].get("user_first_name", None) or recipient_user_name if recipient_user_name !="" else user
+            recipient_first_name = users_cache[user].get("user_first_name", recipient_user_name)
             break
 
     results = []
@@ -184,7 +185,7 @@ def handle_inline(query):
                 )
     bot.answer_inline_query(query.id, results, switch_pm_text="❤️ Инструкция",
                             switch_pm_parameter="instruction",
-                            cache_time=TIMEOUT // 5, is_personal=True)
+                            cache_time=TIMEOUT//5, is_personal=True)
 
 
 # Обработчик нажатий кнопок
