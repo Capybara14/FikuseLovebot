@@ -219,8 +219,8 @@ def button_worker(call):
                                                                     None) or author_msg_user_name or author_msg_user_id
         cmd = find_cmd(cmd_id)
         emoji = cmd["title"].split()[0] + " | "
-        increment_uses(cmd_id)
         if str(call.from_user.id) != parts[2]:
+            increment_uses(cmd_id)
             text = emoji + f"[{author_msg_first_name}]({"https://t.me/" + author_msg_user_name if author_msg_user_name is not None else "tg://user?id=" + author_msg_user_id}) " + \
                    cmd[
                        "text_response"].lower() + f" [{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + str(call.from_user.id)})"
@@ -233,8 +233,8 @@ def button_worker(call):
         author_msg_user_id = parts[2]
         cmd = find_cmd(cmd_id)
         emoji = "❌ | "
-        increment_uses(cmd_id)
         if str(call.from_user.id) != parts[2]:
+            increment_uses(cmd_id)
             text = emoji + f"[{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + str(call.from_user.id)}) " + \
                    cmd["text_deny"]
             bot.edit_message_text(text, inline_message_id=call.inline_message_id,
