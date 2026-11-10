@@ -39,8 +39,10 @@ while True:
     try:
         bot.set_my_commands([
             types.BotCommand("start", "Главное меню"),
+            types.BotCommand("new_command", "Создать команду"),
             types.BotCommand("my_commands", "Управление командами"),
-            types.BotCommand("help", "Инструкция"),
+            types.BotCommand("refresh", "Обновить сортировку команд"),
+            types.BotCommand("help", "Инструкция и советы"),
         ])
         break
     except:
@@ -48,6 +50,7 @@ while True:
 
 
 # endregion
+
 
 # Старт и детали указанной команды
 @bot.message_handler(commands=['start'])
@@ -59,10 +62,8 @@ def start_worker(message):
         bot.reply_to(message,
                      f'👋  *Привет! Это бот для RP команд.*\n\nПросто напиши `@{BOT_USERNAME}` и выбирай команду!',
                      parse_mode="Markdown")
-    elif parts[1] == "help":
-        bot.reply_to(message,
-                     "*📋  Инструкция:*\n\n   • При использовании можно указать юзернейм цели, тогда подтверждение не потребуется\n   • Для просмотра, создания и удаления собственных команд, используй /my\\_commands\n   • В списке доступных тебе команд всегда отображаются сначала твои, потом общие, отсортированные по частоте использования\n   • Рейтинг самых используемых команд среди всех обновляется раз в 10 минут, а самых используемых среди твоих — после использования /refresh (аналогичная функция есть в меню команд)",
-                     parse_mode="Markdown")
+    elif parts[1] == "create_command":
+        my_commands(message)
     else:
         option_parts = parts[1].split("_")
         user_id = option_parts[0]
@@ -84,6 +85,10 @@ def start_worker(message):
 
 # Меню команд
 @bot.message_handler(commands=['my_commands'])
+def my_commands_worker(message):
+    my_commands(message)
+
+
 def my_commands(message):
     bot_message = bot.reply_to(message, "_Загрузка команд..._", parse_mode="Markdown")
     if commands_cache.get(str(message.from_user.id), None) is None or len(
@@ -101,7 +106,7 @@ def my_commands(message):
 @bot.message_handler(commands=['help'])
 def help_worker(message):
     bot.reply_to(message,
-                 "*📋  Инструкция:*\n\n   • При использовании можно указать юзернейм цели, тогда подтверждение не потребуется\n   • Для просмотра, создания и удаления собственных команд, используй /my\\_commands\n   • В списке доступных тебе команд всегда отображаются сначала твои, потом общие, отсортированные по частоте использования\n   • Рейтинг самых используемых команд среди всех обновляется раз в 10 минут, а самых используемых среди твоих — после использования /refresh (аналогичная функция есть в меню команд)",
+                 "*💚  Инструкция и советы:*\n\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • В списке команд всегда отображаются сначала твои, потом чужие, отсортированные по частоте использования\n\n*👾  Доступные команды:*\n\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд\n    /refresh — обновить сортировку твоих команд (более популярные сверху)\n    /my\\_commands — просмотр, создание и удаление твоих команд\n",
                  parse_mode="Markdown")
     bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)
 
@@ -109,7 +114,19 @@ def help_worker(message):
 @bot.message_handler(commands=['refresh'])
 def refresh_worker(message):
     top_calculator(False, message.from_user.id)
-    bot.reply_to(message, "*👾  Команды успешно отсортированы*", parse_mode="Markdown")
+    bot.reply_to(message, "*♻️  Команды успешно отсортированы*", parse_mode="Markdown")
+
+
+@bot.message_handler(commands=['new_command'])
+def create_command_worker(message):
+    if len(commands_cache.get(str(message.from_user.id), [])) < LIMIT_OF_COMMANDS:
+        msg = bot.reply_to(message, text="*Введите название своей команды*\n\n(_Пример:_ `Поцелуй`)",
+                           reply_markup=back_keyboard(message.message_id),
+                           parse_mode="Markdown")
+        bot.register_next_step_handler(msg, enter_the_name)
+    else:
+        bot.reply_to(message, "☹️  *Вы достигли максимального числа команд*",
+                     reply_markup=back_keyboard(message.message_id), parse_mode="Markdown")
 
 
 # Обработчик инлайн режима
@@ -184,8 +201,8 @@ def handle_inline(query):
                         reply_markup=response_keyboard(user_id)
                     )
                 )
-    bot.answer_inline_query(query.id, results, switch_pm_text="❤️ Инструкция",
-                            switch_pm_parameter="help",
+    bot.answer_inline_query(query.id, results, switch_pm_text="💚  Создать свою команду",
+                            switch_pm_parameter="create_command",
                             cache_time=TIMEOUT // 5, is_personal=True)
 
 
@@ -229,24 +246,19 @@ def button_worker(call):
 
     elif parts[0] == "btn_add_command":
         if len(commands_cache.get(str(call.from_user.id), [])) < LIMIT_OF_COMMANDS:
-            msg = bot.edit_message_text(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                text="*Введите название своей команды*\n\n(_Пример:_ `Поцелуй`)",
-                parse_mode="Markdown"
-            )
+            msg = bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                        text="*Введите название своей команды*\n\n(_Пример:_ `Поцелуй`)",
+                                        reply_markup=back_keyboard(call.message.message_id),
+                                        parse_mode="Markdown")
             bot.register_next_step_handler(msg, enter_the_name)
         else:
-            bot.edit_message_text(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                text="☹️  *Вы достигли максимального числа команд*",
-                reply_markup=back_keyboard(call.message.message_id),
-                parse_mode="Markdown"
-            )
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text="☹️  *Вы достигли максимального числа команд*",
+                                  reply_markup=back_keyboard(call.message.message_id), parse_mode="Markdown")
     elif parts[0] == "btn_all_right":
         successfully_create(call)
     elif parts[0] == "btn_back":
+        bot.clear_step_handler_by_chat_id(call.message.chat.id)
         bot_message = call.message.message_id
         if len(parts) > 2:
             cmd_id = parts[2]
@@ -287,7 +299,7 @@ def button_worker(call):
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="*👾  Команды успешно отсортированы*", reply_markup=back_keyboard(call.message.message_id),
+            text="*♻️  Команды успешно отсортированы*", reply_markup=back_keyboard(call.message.message_id),
             parse_mode="Markdown")
 
 
