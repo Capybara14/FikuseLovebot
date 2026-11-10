@@ -39,7 +39,8 @@ while True:
     try:
         bot.set_my_commands([
             types.BotCommand("start", "Главное меню"),
-            types.BotCommand("my_commands", "Управление командами")
+            types.BotCommand("my_commands", "Управление командами"),
+            types.BotCommand("instruction", "Инструкция")
         ])
         break
     except:
@@ -98,8 +99,11 @@ def my_commands(message):
                           reply_markup=commands_keyboard())
 
 
-@bot.message_handler(commands=['cancel'])
-def cancel_worker(message):
+@bot.message_handler(commands=['instruction'])
+def instruction_worker(message):
+    bot.reply_to(message,
+                 "*📋  Инструкция:*\n\n   • При использовании можно указать юзернейм цели, тогда подтверждение не потребуется\n   • Для просмотра, создания и удаления собственных команд, используй /my\\_commands\n   • В списке доступных тебе команд всегда отображаются сначала твои, потом общие, отсортированные по частоте использования\n   • Рейтинг самых используемых команд среди всех обновляется раз в 10 минут, а самых используемых среди твоих — после использования /refresh (аналогичная функция есть в меню команд)",
+                 parse_mode="Markdown")
     bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)
 
 
@@ -178,7 +182,7 @@ def handle_inline(query):
                 )
     bot.answer_inline_query(query.id, results, switch_pm_text="❤️ Инструкция",
                             switch_pm_parameter="instruction",
-                            cache_time=30, is_personal=True)
+                            cache_time=10, is_personal=True)
 
 
 # Обработчик нажатий кнопок
