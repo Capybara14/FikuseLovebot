@@ -156,7 +156,7 @@ def handle_inline(query):
                     types.InlineQueryResultArticle(
                         id=cmd["id"],
                         title=cmd["title"],
-                        description=cmd["text_response"].capitalize() + " @username",
+                        description=user_first_name + " " + cmd["text_response"] + " @username",
                         input_message_content=types.InputTextMessageContent(emoji +
                                                                             f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
                                                                             cmd["text_inquery"],
@@ -172,7 +172,8 @@ def handle_inline(query):
                     types.InlineQueryResultArticle(
                         id=cmd["id"],
                         title=cmd["title"],
-                        description=cmd["text_response"].capitalize() + f" @{recipient_user_name}",
+                        description=user_first_name + " " + cmd[
+                            "text_response"].capitalize() + f" @{recipient_user_name}",
                         input_message_content=types.InputTextMessageContent(emoji +
                                                                             f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
                                                                             cmd[
@@ -186,7 +187,7 @@ def handle_inline(query):
                 )
     bot.answer_inline_query(query.id, results, switch_pm_text="❤️ Инструкция",
                             switch_pm_parameter="instruction",
-                            cache_time=TIMEOUT//5, is_personal=True)
+                            cache_time=TIMEOUT // 5, is_personal=True)
 
 
 # Обработчик нажатий кнопок
