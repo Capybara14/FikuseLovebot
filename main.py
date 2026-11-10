@@ -39,10 +39,7 @@ bot = telebot.TeleBot(BOT_TOKEN, threaded=True, num_threads=8)
 while True:
     try:
         bot.set_my_commands([
-            types.BotCommand("start", "Главное меню"),
-            types.BotCommand("new_command", "Создать команду"),
             types.BotCommand("my_commands", "Управление командами"),
-            types.BotCommand("refresh", "Обновить сортировку"),
             types.BotCommand("help", "Инструкция и советы"),
         ])
         break
