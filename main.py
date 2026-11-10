@@ -42,7 +42,7 @@ while True:
             types.BotCommand("start", "Главное меню"),
             types.BotCommand("new_command", "Создать команду"),
             types.BotCommand("my_commands", "Управление командами"),
-            types.BotCommand("refresh", "Обновить сортировку команд"),
+            types.BotCommand("refresh", "Обновить сортировку"),
             types.BotCommand("help", "Инструкция и советы"),
         ])
         break
