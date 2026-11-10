@@ -88,7 +88,7 @@ def my_commands_worker(message):
             commands_cache[str(message.from_user.id)]) == 0:
         text = "😶  *У вас ещё нет команд, выберите действие*"
     else:
-        text = f"📃  *Ваши команды:*\n\n"
+        text = f"*Ваши команды:*\n\n"
         for cmd in commands_cache[str(message.from_user.id)]:
             text += f"   — {cmd["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd["id"]}_{bot_message.message_id}))\n\n"
         text += f"(_Команды в списке доступных могут обновляться с задержкой_)"
@@ -268,7 +268,7 @@ def button_worker(call):
         if commands_cache.get(str(call.from_user.id), None) is None or len(commands_cache[str(call.from_user.id)]) == 0:
             text = "😶  *У вас ещё нет команд, выберите действие*"
         else:
-            text = f"📃  *Ваши команды:*\n\n"
+            text = f"*Ваши команды:*\n\n"
             for cmd_id in commands_cache[str(call.from_user.id)]:
                 text += f"   — {cmd_id["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd_id["id"]}_{bot_message}))\n\n"
             text += f"(_Команды в списке доступных могут обновляться с задержкой_)"
