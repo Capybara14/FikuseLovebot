@@ -16,6 +16,7 @@ FILE_COMMANDS_PATH = "commands.json"
 FILE_USERS_PATH = "users.json"
 LOCK = threading.Lock()
 TIMEOUT = 600
+LIMIT_OF_COMMANDS = 30
 
 # region НАЧАЛЬНЫЕ НАСТРОЙКИ
 
@@ -227,11 +228,11 @@ def button_worker(call):
                                   parse_mode="Markdown", disable_web_page_preview=True)
 
     elif parts[0] == "btn_add_command":
-        if len(commands_cache.get(str(call.from_user.id), [])) < 30:
+        if len(commands_cache.get(str(call.from_user.id), [])) < LIMIT_OF_COMMANDS:
             msg = bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                text="*Введите название своей команды*\n\n(_Пример: _`Поцелуй`_)",
+                text="*Введите название своей команды*\n\n(_Пример:_ `Поцелуй`)",
                 parse_mode="Markdown"
             )
             bot.register_next_step_handler(msg, enter_the_name)
@@ -410,7 +411,7 @@ def enter_text_inquery(message, new_command):
     new_command["text_inquery"] = clean_md(message.text).lower()
     msg = bot.reply_to(
         message,
-        "*Введите текст совершённого действия*\n\n(_Перед ним будет твой ник, а после него ник того, кто принял. Пример: _`поцеловал(а)`_)",
+        "*Введите текст совершённого действия*\n\n(_Перед ним будет твой ник, а после него ник того, кто принял. Пример: _`поцеловал(а)`)",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_text_response, new_command)
@@ -421,7 +422,7 @@ def enter_text_response(message, new_command):
     new_command["text_response"] = clean_md(message.text).lower()
     msg = bot.reply_to(
         message,
-        "*Введите текст отказа от действия*\n\n(_Перед ним будет ник того, кто отклонил. Пример: _`не хочет целоваться`_)",
+        "*Введите текст отказа от действия*\n\n(_Перед ним будет ник того, кто отклонил. Пример: _`не хочет целоваться`)",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, final_check, new_command)
