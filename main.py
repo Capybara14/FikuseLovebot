@@ -7,10 +7,13 @@ import telebot
 from telebot import types
 from dotenv import load_dotenv
 
+is_debug_mode = False
+
 load_dotenv()
 EMOJI_TEMPLATE = "https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/{code}.png"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 BOT_USERNAME = os.getenv("BOT_USERNAME")
+OWNER_ID = os.getenv("OWNER_ID")
 IMGBB_KEY = os.getenv("IMGBB_KEY")
 FILE_COMMANDS_PATH = "commands.json"
 FILE_USERS_PATH = "users.json"
@@ -55,7 +58,6 @@ while True:
 def start_worker(message):
     save_user(message.from_user)
     parts = message.text.split()
-
     if len(parts) == 1:
         bot.reply_to(message,
                      f'👋  *Привет! Это бот для RP команд.*\n\nПросто напиши `@{BOT_USERNAME}` и выбирай команду!',
@@ -487,6 +489,8 @@ def successfully_create(call):
 # Ловит события для счетчика
 @bot.chosen_inline_handler(func=lambda r: True)
 def handle_chosen_inline(result):
+    if is_debug_mode:
+        bot.send_message(OWNER_ID, f"Кто: {result.from_user.first_name}\nКого: {result.query}\nКоманда: {find_cmd(result.result_id)["title"][1:]}",parse_mode="HTML")
     if "@" in result.query:
         increment_uses(result.result_id)
 
