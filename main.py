@@ -61,7 +61,7 @@ def start_worker(message):
                      f'👋  *Привет! Это бот для RP команд.*\n\nПросто напиши `@{BOT_USERNAME}` и выбирай команду!',
                      parse_mode="Markdown")
     elif parts[1] == "create_command":
-        my_commands(message)
+        create_command(message)
     else:
         option_parts = parts[1].split("_")
         user_id = option_parts[0]
@@ -84,10 +84,6 @@ def start_worker(message):
 # Меню команд
 @bot.message_handler(commands=['my_commands'])
 def my_commands_worker(message):
-    my_commands(message)
-
-
-def my_commands(message):
     bot_message = bot.reply_to(message, "_Загрузка команд..._", parse_mode="Markdown")
     if commands_cache.get(str(message.from_user.id), None) is None or len(
             commands_cache[str(message.from_user.id)]) == 0:
@@ -101,10 +97,11 @@ def my_commands(message):
                           reply_markup=commands_keyboard())
 
 
+
 @bot.message_handler(commands=['help'])
 def help_worker(message):
     bot.reply_to(message,
-                 "*💚  Инструкция и советы:*\n\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • В списке команд всегда отображаются сначала твои, потом чужие, отсортированные по частоте использования\n\n*👾  Доступные команды:*\n\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд\n    /refresh — обновить сортировку твоих команд (более популярные сверху)\n    /my\\_commands — просмотр, создание и удаление твоих команд\n",
+                 "*💚  Инструкция и советы:*\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • В списке команд всегда отображаются сначала твои, потом чужие, отсортированные по частоте использования\n\n*👾  Доступные команды:*\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд\n    /refresh — обновить сортировку твоих команд (более популярные сверху)\n    /my\\_commands — просмотр, создание и удаление твоих команд\n",
                  parse_mode="Markdown")
     bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)
 
@@ -117,6 +114,10 @@ def refresh_worker(message):
 
 @bot.message_handler(commands=['new_command'])
 def create_command_worker(message):
+    create_command(message)
+
+
+def create_command(message):
     if len(commands_cache.get(str(message.from_user.id), [])) < LIMIT_OF_COMMANDS:
         msg = bot.reply_to(message, text="*Введите название своей команды*\n\n(_Пример:_ `Поцелуй`)",
                            reply_markup=back_keyboard(message.message_id),
@@ -125,7 +126,6 @@ def create_command_worker(message):
     else:
         bot.reply_to(message, "☹️  *Вы достигли максимального числа команд*",
                      reply_markup=back_keyboard(message.message_id), parse_mode="Markdown")
-
 
 # Обработчик инлайн режима
 @bot.inline_handler(lambda query: True)
