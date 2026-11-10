@@ -31,9 +31,8 @@ if os.path.exists(FILE_USERS_PATH):
         users_cache = json.load(f)
 
 # Нужна ли перезапись бд
-is_dirty = False
 
-bot = telebot.TeleBot(BOT_TOKEN, threaded=True)
+bot = telebot.TeleBot(BOT_TOKEN, threaded=True, num_threads=8)
 
 while True:
     try:
@@ -52,7 +51,7 @@ while True:
 # Старт и детали указанной команды
 @bot.message_handler(commands=['start'])
 def start_worker(message):
-    save_user(message.from_user.username, message.from_user.first_name)
+    save_user(message.from_user)
     parts = message.text.split()
 
     if len(parts) == 1:
@@ -76,7 +75,8 @@ def start_worker(message):
             f"   • _Описание:_ {cmd['desc']}\n"
             f"   • _Текст запроса:_ {cmd['text_inquery']}\n"
             f"   • _Текст согласия:_ {cmd['text_response']}\n"
-            f"   • _Текст отказа:_ {cmd['text_deny']}\n\n"
+            f"   • _Текст отказа:_ {cmd['text_deny']}\n"
+            f"   • _Стикер-превью:_ {"есть" if cmd.get("thumb_url", None) else "отсутствует"}\n\n"
             f"_Число использований:_ {cmd['uses_count']}\n",
             message.chat.id, bot_message,
             reply_markup=command_details_keyboard(cmd_id, bot_message), parse_mode="Markdown")
@@ -85,8 +85,6 @@ def start_worker(message):
 # Меню команд
 @bot.message_handler(commands=['my_commands'])
 def my_commands(message):
-    save_user(message.from_user.username, message.from_user.first_name)
-
     bot_message = bot.reply_to(message, "_Загрузка команд..._", parse_mode="Markdown")
     if commands_cache.get(str(message.from_user.id), None) is None or len(
             commands_cache[str(message.from_user.id)]) == 0:
@@ -95,6 +93,7 @@ def my_commands(message):
         text = f"📃  *Ваши команды:*\n\n"
         for cmd in commands_cache[str(message.from_user.id)]:
             text += f"   — {cmd["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd["id"]}_{bot_message.message_id}))\n\n"
+        text += f"_(Команды в списке доступных могут обновляться с задержкой)_"
     bot.edit_message_text(text, message.chat.id, bot_message.message_id, parse_mode="Markdown",
                           reply_markup=commands_keyboard())
 
@@ -121,7 +120,7 @@ def handle_inline(query):
     user_first_name = query.from_user.first_name
     user_name = query.from_user.username
 
-    save_user(user_name, user_first_name)
+    save_user(query.from_user)
 
     # Убираем повторы пользовательских команд среди топовых команд
     user_commands = commands_cache.get(user_id, [])
@@ -177,19 +176,19 @@ def handle_inline(query):
                                                                             disable_web_page_preview=True
                                                                             ),
                         thumbnail_url=cmd.get("thumb_url") or EMOJI_TEMPLATE.format(code=f"{ord(emoji[0]):x}"),
-                        reply_markup=response_keyboard(user_name, cmd["id"])
+                        reply_markup=response_keyboard(user_name)
                     )
                 )
     bot.answer_inline_query(query.id, results, switch_pm_text="❤️ Инструкция",
                             switch_pm_parameter="instruction",
-                            cache_time=TIMEOUT//5, is_personal=True)
+                            cache_time=TIMEOUT // 5, is_personal=True)
 
 
 # Обработчик нажатий кнопок
 @bot.callback_query_handler(func=lambda call: True)
 def button_worker(call):
     bot.answer_callback_query(call.id)
-    save_user(call.from_user.username, call.from_user.first_name)
+    save_user(call.from_user)
 
     parts = call.data.split(" ")
 
@@ -199,12 +198,12 @@ def button_worker(call):
         author_msg_first_name = users_cache.get(author_msg_user_name, author_msg_user_name)
         cmd = find_cmd(cmd_id)
         emoji = cmd["title"].split()[0] + " | "
-
+        increment_uses(cmd_id)
         if call.from_user.username != parts[2]:
             text = emoji + f"[{author_msg_first_name}](https://t.me/{author_msg_user_name}) " + cmd[
                 "text_response"] + f" [{call.from_user.first_name}](https://t.me/{call.from_user.username})"
             bot.edit_message_text(text, inline_message_id=call.inline_message_id,
-                                  reply_markup=response_keyboard(author_msg_user_name, cmd_id),
+                                  reply_markup=response_keyboard(author_msg_user_name),
                                   parse_mode="Markdown", disable_web_page_preview=True)
 
     elif parts[0] == "btn_deny":
@@ -212,11 +211,11 @@ def button_worker(call):
         author_msg_user_name = parts[2]
         cmd = find_cmd(cmd_id)
         emoji = "❌ | "
-
+        increment_uses(cmd_id)
         if call.from_user.username != parts[2]:
             text = emoji + f"[{call.from_user.first_name}](https://t.me/{call.from_user.username}) " + cmd["text_deny"]
             bot.edit_message_text(text, inline_message_id=call.inline_message_id,
-                                  reply_markup=response_keyboard(author_msg_user_name, cmd_id),
+                                  reply_markup=response_keyboard(author_msg_user_name),
                                   parse_mode="Markdown", disable_web_page_preview=True)
 
     elif parts[0] == "btn_add_command":
@@ -254,6 +253,7 @@ def button_worker(call):
             text = f"📃  *Ваши команды:*\n\n"
             for cmd_id in commands_cache[str(call.from_user.id)]:
                 text += f"   — {cmd_id["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd_id["id"]}_{bot_message}))\n\n"
+            text += f"_(Команды в списке доступных могут обновляться с задержкой)_"
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -261,13 +261,11 @@ def button_worker(call):
             parse_mode="Markdown")
     elif parts[0] == "btn_delete_command":
         try:
-            global is_dirty
             cmd_id = parts[1]
             author_cmd_id = cmd_id.split("_")[0]
             cmd = find_cmd(cmd_id)
             commands_cache[author_cmd_id].remove(cmd)
             text = f"✅ *Команда успешно удалена*"
-            is_dirty = True
         except:
             text = "❌ Ошибка удаления команды"
         bot.edit_message_text(
@@ -288,8 +286,7 @@ def find_cmd(cmd_id: str):
     user_id = cmd_id.split("_")[0]
     for i in commands_cache[user_id]:
         if i["id"] == cmd_id:
-            cmd = i
-            return cmd
+            return i
 
 
 # region КЛАВИАТУРЫ
@@ -304,15 +301,11 @@ def inquery_keyboard(cmd_id: str, user_name: str):
     return markup
 
 
-# Клавиатура предлагающая ответить на успешно совершенное действие, СЧИТАЕТ ИСПОЛЬЗОВАНИЯ
-def response_keyboard(user_name: str, cmd_id):
-    global is_dirty
-    cmd = find_cmd(cmd_id)
-    cmd["uses_count"] = str(int(cmd["uses_count"]) + 1)
-    is_dirty = True
-
+# Клавиатура предлагающая ответить на успешно совершенное действие
+def response_keyboard(user_name: str):
     markup = types.InlineKeyboardMarkup(row_width=1)
-    btn_response = types.InlineKeyboardButton(text="Ответить", switch_inline_query_current_chat=f"@{user_name} ")
+    btn_response = types.InlineKeyboardButton(text="Ответить",
+                                              switch_inline_query_current_chat=f"{"@"+user_name if user_name is not None else ""} ")
     markup.add(btn_response)
     return markup
 
@@ -439,16 +432,14 @@ def enter_text_response(message, new_command):
 
 # Финальное подтверждение
 def final_check(message, new_command):
-    global is_dirty
     new_command["text_deny"] = clean_md(message.text).lower()
     user_id = str(message.from_user.id)
 
     if user_id not in commands_cache or commands_cache[user_id] == []:
         commands_cache[user_id] = []
-        commands_max_num=0
+        commands_max_num = 0
     else:
-        commands_max_num = max([int(i["id"].split("_")[1]) for i in commands_cache[user_id]])+1
-    print(commands_max_num)
+        commands_max_num = max([int(i["id"].split("_")[1]) for i in commands_cache[user_id]]) + 1
     commands_cache[user_id].append(new_command | {"id": f"{user_id}_{commands_max_num}", "uses_count": "0"})
     bot_message = bot.reply_to(
         message,
@@ -460,7 +451,8 @@ def final_check(message, new_command):
              f"   • _Описание:_ {new_command['desc']}\n"
              f"   • _Запрос:_ {new_command['text_inquery']}\n"
              f"   • _Согласие:_ {new_command['text_response']}\n"
-             f"   • _Отказ:_ {new_command['text_deny']}\n",
+             f"   • _Отказ:_ {new_command['text_deny']}\n"
+             f"   • _Стикер-превью:_ {"есть" if new_command.get("thumb_url", None) else "отсутствует"}",
         chat_id=bot_message.chat.id,
         message_id=bot_message.message_id,
         reply_markup=final_step_keyboard(f"{user_id}_{commands_max_num}", bot_message.message_id),
@@ -468,7 +460,6 @@ def final_check(message, new_command):
     )
 
     top_calculator(False, user_id)
-    is_dirty = True
 
 
 # Завершение
@@ -486,6 +477,22 @@ def successfully_create(call):
 
 # region РАБОТА С ФАЙЛАМИ
 
+# Ловит события для счетчика
+@bot.chosen_inline_handler(func=lambda r: True)
+def handle_chosen_inline(result):
+    if "@" in result.query:
+        increment_uses(result.result_id)
+
+
+# Добавляет единичку к использованию команды
+def increment_uses(cmd_id: str):
+    user_id = cmd_id.split("_")[0]
+    cmd = find_cmd(cmd_id)
+    commands_cache[user_id].remove(cmd)
+    cmd["uses_count"] = str(int(cmd.get("uses_count", 0)) + 1)
+    commands_cache[user_id].append(cmd)
+
+
 # превращение стикера в правильную пнг и загрузка на сервак
 def process_and_upload_sticker(raw_bytes):
     try:
@@ -499,38 +506,36 @@ def process_and_upload_sticker(raw_bytes):
 
         res = requests.post(
             "https://api.imgbb.com/1/upload",
-            data={"key": IMGBB_KEY,"image": base64.b64encode(out.getvalue()).decode("utf-8")},timeout=10).json()
+            data={"key": IMGBB_KEY, "image": base64.b64encode(out.getvalue()).decode("utf-8")}, timeout=10).json()
         return res.get("data", {}).get("url")
     except Exception:
         return None
 
 
 # Добавляет ферстнейм и юзернейм в кеш
-def save_user(user_name: str, user_first_name: str):
-    global is_dirty
-    if users_cache.get(str(user_name), None) is None:
+def save_user(user):
+    user_name = user.username
+    user_first_name = clean_md(user.first_name)
+    if user_name is not None and (
+            users_cache.get(user_name, None) is None or users_cache[user_name] != user_first_name):
         users_cache[user_name] = user_first_name
-        is_dirty = True
 
 
 # Демон поток, который синхронизирует озу и пзу, кроме того, заставляет пересчитать топы
 def file_saver():
-    global is_dirty
     top_calculator(True)
     while True:
-        if is_dirty:
-            try:
-                with LOCK:
-                    top_calculator(True)
-                    with open(FILE_USERS_PATH + ".tmp", "w", encoding="utf-8") as f:
-                        json.dump(users_cache, f, ensure_ascii=False, indent=2)
-                    os.replace(FILE_USERS_PATH + ".tmp", FILE_USERS_PATH)
-                    with open(FILE_COMMANDS_PATH + ".tmp", "w", encoding="utf-8") as f:
-                        json.dump(commands_cache, f, ensure_ascii=False, indent=2)
-                    os.replace(FILE_COMMANDS_PATH + ".tmp", FILE_COMMANDS_PATH)
-                    is_dirty = False
-            except Exception as e:
-                print(f"Ошибка фонового сохранения: {e}")
+        try:
+            with LOCK:
+                top_calculator(True)
+                with open(FILE_USERS_PATH + ".tmp", "w", encoding="utf-8") as f:
+                    json.dump(users_cache, f, ensure_ascii=False, indent=2)
+                os.replace(FILE_USERS_PATH + ".tmp", FILE_USERS_PATH)
+                with open(FILE_COMMANDS_PATH + ".tmp", "w", encoding="utf-8") as f:
+                    json.dump(commands_cache, f, ensure_ascii=False, indent=2)
+                os.replace(FILE_COMMANDS_PATH + ".tmp", FILE_COMMANDS_PATH)
+        except Exception as e:
+            print(f"Ошибка фонового сохранения: {e}")
         time.sleep(TIMEOUT)
 
 
@@ -562,7 +567,6 @@ def handle_exit(signum, frame):
 
 
 # endregion
-
 t = threading.Thread(target=file_saver, daemon=True)
 t.start()
 
