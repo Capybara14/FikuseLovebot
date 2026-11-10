@@ -172,8 +172,7 @@ def handle_inline(query):
                     types.InlineQueryResultArticle(
                         id=cmd["id"],
                         title=cmd["title"],
-                        description=user_first_name + " " + cmd[
-                            "text_response"].capitalize() + f" @{recipient_user_name}",
+                        description=user_first_name + " " + cmd["text_response"] + f" @{recipient_user_name}",
                         input_message_content=types.InputTextMessageContent(emoji +
                                                                             f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
                                                                             cmd[
