@@ -16,7 +16,7 @@ FILE_COMMANDS_PATH = "commands.json"
 FILE_USERS_PATH = "users.json"
 LOCK = threading.Lock()
 TIMEOUT = 600
-LIMIT_OF_COMMANDS = 30
+LIMIT_OF_COMMANDS = 100
 
 # region НАЧАЛЬНЫЕ НАСТРОЙКИ
 
