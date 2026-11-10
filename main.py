@@ -40,6 +40,7 @@ while True:
         bot.set_my_commands([
             types.BotCommand("start", "Главное меню"),
             types.BotCommand("my_commands", "Управление командами"),
+            types.BotCommand("help", "Инструкция"),
         ])
         break
     except:
