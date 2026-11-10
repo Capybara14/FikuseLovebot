@@ -40,7 +40,6 @@ while True:
         bot.set_my_commands([
             types.BotCommand("start", "Главное меню"),
             types.BotCommand("my_commands", "Управление командами"),
-            types.BotCommand("instruction", "Инструкция")
         ])
         break
     except:
@@ -59,7 +58,7 @@ def start_worker(message):
         bot.reply_to(message,
                      f'👋  *Привет! Это бот для RP команд.*\n\nПросто напиши `@{BOT_USERNAME}` и выбирай команду!',
                      parse_mode="Markdown")
-    elif parts[1] == "instruction":
+    elif parts[1] == "help":
         bot.reply_to(message,
                      "*📋  Инструкция:*\n\n   • При использовании можно указать юзернейм цели, тогда подтверждение не потребуется\n   • Для просмотра, создания и удаления собственных команд, используй /my\\_commands\n   • В списке доступных тебе команд всегда отображаются сначала твои, потом общие, отсортированные по частоте использования\n   • Рейтинг самых используемых команд среди всех обновляется раз в 10 минут, а самых используемых среди твоих — после использования /refresh (аналогичная функция есть в меню команд)",
                      parse_mode="Markdown")
@@ -98,8 +97,8 @@ def my_commands(message):
                           reply_markup=commands_keyboard())
 
 
-@bot.message_handler(commands=['instruction'])
-def instruction_worker(message):
+@bot.message_handler(commands=['help'])
+def help_worker(message):
     bot.reply_to(message,
                  "*📋  Инструкция:*\n\n   • При использовании можно указать юзернейм цели, тогда подтверждение не потребуется\n   • Для просмотра, создания и удаления собственных команд, используй /my\\_commands\n   • В списке доступных тебе команд всегда отображаются сначала твои, потом общие, отсортированные по частоте использования\n   • Рейтинг самых используемых команд среди всех обновляется раз в 10 минут, а самых используемых среди твоих — после использования /refresh (аналогичная функция есть в меню команд)",
                  parse_mode="Markdown")
@@ -185,7 +184,7 @@ def handle_inline(query):
                     )
                 )
     bot.answer_inline_query(query.id, results, switch_pm_text="❤️ Инструкция",
-                            switch_pm_parameter="instruction",
+                            switch_pm_parameter="help",
                             cache_time=TIMEOUT // 5, is_personal=True)
 
 
