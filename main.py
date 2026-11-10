@@ -72,7 +72,6 @@ def start_worker(message):
         bot.edit_message_text(
             f"*👀  Детали команды:*\n\n"
             f"   • _Название:_ {cmd['title']}\n"
-            f"   • _Описание:_ {cmd['desc']}\n"
             f"   • _Текст запроса:_ {cmd['text_inquery']}\n"
             f"   • _Текст согласия:_ {cmd['text_response']}\n"
             f"   • _Текст отказа:_ {cmd['text_deny']}\n"
@@ -93,7 +92,7 @@ def my_commands(message):
         text = f"📃  *Ваши команды:*\n\n"
         for cmd in commands_cache[str(message.from_user.id)]:
             text += f"   — {cmd["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd["id"]}_{bot_message.message_id}))\n\n"
-        text += f"_(Команды в списке доступных могут обновляться с задержкой)_"
+        text += f"(_Команды в списке доступных могут обновляться с задержкой_)"
     bot.edit_message_text(text, message.chat.id, bot_message.message_id, parse_mode="Markdown",
                           reply_markup=commands_keyboard())
 
@@ -151,14 +150,14 @@ def handle_inline(query):
                     types.InlineQueryResultArticle(
                         id=cmd["id"],
                         title=cmd["title"],
-                        description=cmd["desc"] + " @username",
+                        description=cmd["text_response"].capitalize() + " @username",
                         input_message_content=types.InputTextMessageContent(emoji +
-                                                                            f"[{user_first_name}](https://t.me/{user_name}) " +
+                                                                            f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
                                                                             cmd["text_inquery"],
                                                                             parse_mode="Markdown",
                                                                             disable_web_page_preview=True),
                         thumbnail_url=cmd.get("thumb_url") or EMOJI_TEMPLATE.format(code=f"{ord(emoji[0]):x}"),
-                        reply_markup=inquery_keyboard(cmd["id"], user_name)
+                        reply_markup=inquery_keyboard(cmd["id"], user_id)
                     )
                 )
             # Сообщение без запроса, уже готовое с нужными айдишниками
@@ -167,16 +166,16 @@ def handle_inline(query):
                     types.InlineQueryResultArticle(
                         id=cmd["id"],
                         title=cmd["title"],
-                        description=cmd["desc"] + f" @{recipient_user_name}",
+                        description=cmd["text_response"].capitalize() + f" @{recipient_user_name}",
                         input_message_content=types.InputTextMessageContent(emoji +
-                                                                            f"[{user_first_name}](https://t.me/{user_name}) " +
+                                                                            f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
                                                                             cmd[
                                                                                 "text_response"] + f" [{recipient_first_name}](https://t.me/{recipient_user_name})",
                                                                             parse_mode="Markdown",
                                                                             disable_web_page_preview=True
                                                                             ),
                         thumbnail_url=cmd.get("thumb_url") or EMOJI_TEMPLATE.format(code=f"{ord(emoji[0]):x}"),
-                        reply_markup=response_keyboard(user_name)
+                        reply_markup=response_keyboard(user_id)
                     )
                 )
     bot.answer_inline_query(query.id, results, switch_pm_text="❤️ Инструкция",
@@ -194,28 +193,32 @@ def button_worker(call):
 
     if parts[0] == "btn_accept":
         cmd_id = parts[1]
-        author_msg_user_name = parts[2]
-        author_msg_first_name = users_cache.get(author_msg_user_name, author_msg_user_name)
+        author_msg_user_id = parts[2]
+        author_msg_user_name = users_cache[author_msg_user_id].get("user_name", None)
+        author_msg_first_name = users_cache[author_msg_user_id].get("user_first_name",
+                                                                    None) or author_msg_user_name or author_msg_user_id
         cmd = find_cmd(cmd_id)
         emoji = cmd["title"].split()[0] + " | "
         increment_uses(cmd_id)
-        if call.from_user.username != parts[2]:
-            text = emoji + f"[{author_msg_first_name}](https://t.me/{author_msg_user_name}) " + cmd[
-                "text_response"] + f" [{call.from_user.first_name}](https://t.me/{call.from_user.username})"
+        if str(call.from_user.id) != parts[2]:
+            text = emoji + f"[{author_msg_first_name}]({"https://t.me/" + author_msg_user_name if author_msg_user_name is not None else "tg://user?id=" + author_msg_user_id}) " + \
+                   cmd[
+                       "text_response"].lower() + f" [{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + call.from_user.id})"
             bot.edit_message_text(text, inline_message_id=call.inline_message_id,
-                                  reply_markup=response_keyboard(author_msg_user_name),
+                                  reply_markup=response_keyboard(author_msg_user_id),
                                   parse_mode="Markdown", disable_web_page_preview=True)
 
     elif parts[0] == "btn_deny":
         cmd_id = parts[1]
-        author_msg_user_name = parts[2]
+        author_msg_user_id = parts[2]
         cmd = find_cmd(cmd_id)
         emoji = "❌ | "
         increment_uses(cmd_id)
-        if call.from_user.username != parts[2]:
-            text = emoji + f"[{call.from_user.first_name}](https://t.me/{call.from_user.username}) " + cmd["text_deny"]
+        if str(call.from_user.id) != parts[2]:
+            text = emoji + f"[{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + call.from_user.id}) " + \
+                   cmd["text_deny"]
             bot.edit_message_text(text, inline_message_id=call.inline_message_id,
-                                  reply_markup=response_keyboard(author_msg_user_name),
+                                  reply_markup=response_keyboard(author_msg_user_id),
                                   parse_mode="Markdown", disable_web_page_preview=True)
 
     elif parts[0] == "btn_add_command":
@@ -223,7 +226,7 @@ def button_worker(call):
             msg = bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                text="*Введите название своей команды*\n\n_(Пример: _`Поцелуй`_)_",
+                text="*Введите название своей команды*\n\n(_Пример: _`Поцелуй`_)",
                 parse_mode="Markdown"
             )
             bot.register_next_step_handler(msg, enter_the_name)
@@ -253,7 +256,7 @@ def button_worker(call):
             text = f"📃  *Ваши команды:*\n\n"
             for cmd_id in commands_cache[str(call.from_user.id)]:
                 text += f"   — {cmd_id["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd_id["id"]}_{bot_message}))\n\n"
-            text += f"_(Команды в списке доступных могут обновляться с задержкой)_"
+            text += f"(_Команды в списке доступных могут обновляться с задержкой_)"
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -291,21 +294,22 @@ def find_cmd(cmd_id: str):
 
 # region КЛАВИАТУРЫ
 # клавиатура спрашивающая принять ли предложение
-def inquery_keyboard(cmd_id: str, user_name: str):
+def inquery_keyboard(cmd_id: str, user_id: str):
     markup = types.InlineKeyboardMarkup(row_width=2)
-    btn_accept = types.InlineKeyboardButton("Принять", callback_data=f"btn_accept" + f" {cmd_id}" + f" {user_name}",
+    btn_accept = types.InlineKeyboardButton("Принять", callback_data=f"btn_accept" + f" {cmd_id}" + f" {user_id}",
                                             style="success")
-    btn_deny = types.InlineKeyboardButton("Отказаться", callback_data=f"btn_deny" + f" {cmd_id}" + f" {user_name}",
+    btn_deny = types.InlineKeyboardButton("Отказаться", callback_data=f"btn_deny" + f" {cmd_id}" + f" {user_id}",
                                           style="danger")
     markup.add(btn_accept, btn_deny)
     return markup
 
 
 # Клавиатура предлагающая ответить на успешно совершенное действие
-def response_keyboard(user_name: str):
+def response_keyboard(author_msg_user_id: str):
     markup = types.InlineKeyboardMarkup(row_width=1)
+    user_name = users_cache[author_msg_user_id]["user_name"]
     btn_response = types.InlineKeyboardButton(text="Ответить",
-                                              switch_inline_query_current_chat=f"{"@"+user_name if user_name is not None else ""} ")
+                                              switch_inline_query_current_chat=f"{"@" + user_name if user_name is not None else ""} ")
     markup.add(btn_response)
     return markup
 
@@ -352,7 +356,6 @@ def final_step_keyboard(cmd_id, bot_message):
 
 # region ПРОЦЕСС СОЗДАНИЯ НОВОЙ КОМАНДЫ
 
-# Ввод имени
 def clean_md(text: str) -> str:
     """Удаляет символы разметки Markdown."""
     for char in ("_", "*", "`", "[", "]"):
@@ -362,10 +365,10 @@ def clean_md(text: str) -> str:
 
 # Ввод названия
 def enter_the_name(message):
-    new_command = {"title": clean_md(message.text)}
+    new_command = {"title": clean_md(message.text).capitalize()}
     msg = bot.reply_to(
         message,
-        "*Введите эмодзи для команды*\n\n_(Будет располагаться рядом с названием и действием)_",
+        "*Введите эмодзи для команды*\n\n(_Будет располагаться рядом с названием и действием_)",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_the_emoji, new_command)
@@ -375,7 +378,7 @@ def enter_the_emoji(message, new_command):
     new_command["title"] = f"{clean_md(message.text)} {new_command['title']}"
     msg = bot.reply_to(
         message,
-        "*Отправьте стикер для иконки команды*\n\n_(Или напишите /skip для пропуска)_",
+        "*Отправьте стикер для иконки команды*\n\n(_Или напишите /skip для пропуска_)",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_the_sticker, new_command)
@@ -392,19 +395,8 @@ def enter_the_sticker(message, new_command):
             pass
     new_command["thumb_url"] = thumb_url
     msg = bot.reply_to(message,
-                       "*Введите описание команды*\n\n_(После него будет ник цели действия. Пример: _`Поцеловать`_)_",
+                       "*Введите текст запроса на действие*\n\n(_Перед ним будет твой ник. Пример: _`хочет поцеловать`)",
                        parse_mode="Markdown")
-    bot.register_next_step_handler(msg, enter_the_description, new_command)
-
-
-# Ввод описания
-def enter_the_description(message, new_command):
-    new_command["desc"] = clean_md(message.text)
-    msg = bot.reply_to(
-        message,
-        "*Введите текст запроса на действие*\n\n_(Перед ним будет твой ник. Пример: _`хочет поцеловать`_)_",
-        parse_mode="Markdown"
-    )
     bot.register_next_step_handler(msg, enter_text_inquery, new_command)
 
 
@@ -413,7 +405,7 @@ def enter_text_inquery(message, new_command):
     new_command["text_inquery"] = clean_md(message.text).lower()
     msg = bot.reply_to(
         message,
-        "*Введите текст совершённого действия*\n\n_(Перед ним будет твой ник, а после него ник того, кто принял. Пример: _`поцеловал(а)`_)_",
+        "*Введите текст совершённого действия*\n\n(_Перед ним будет твой ник, а после него ник того, кто принял. Пример: _`поцеловал(а)`_)",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_text_response, new_command)
@@ -424,7 +416,7 @@ def enter_text_response(message, new_command):
     new_command["text_response"] = clean_md(message.text).lower()
     msg = bot.reply_to(
         message,
-        "*Введите текст отказа от действия*\n\n_(Перед ним будет ник того, кто отклонил. Пример: _`не хочет целоваться`_)_",
+        "*Введите текст отказа от действия*\n\n(_Перед ним будет ник того, кто отклонил. Пример: _`не хочет целоваться`_)",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, final_check, new_command)
@@ -448,7 +440,6 @@ def final_check(message, new_command):
     bot.edit_message_text(
         text=f"*Проверьте правильность ввода:*\n\n"
              f"   • _Название:_ {new_command['title']}\n"
-             f"   • _Описание:_ {new_command['desc']}\n"
              f"   • _Запрос:_ {new_command['text_inquery']}\n"
              f"   • _Согласие:_ {new_command['text_response']}\n"
              f"   • _Отказ:_ {new_command['text_deny']}\n"
@@ -514,11 +505,12 @@ def process_and_upload_sticker(raw_bytes):
 
 # Добавляет ферстнейм и юзернейм в кеш
 def save_user(user):
+    user_id = str(user.id)
     user_name = user.username
     user_first_name = clean_md(user.first_name)
-    if user_name is not None and (
-            users_cache.get(user_name, None) is None or users_cache[user_name] != user_first_name):
-        users_cache[user_name] = user_first_name
+    if users_cache.get(user_id, None) is None or users_cache[user_id]["user_name"] != user_name or users_cache[user_id][
+        "user_first_name"] != user_first_name:
+        users_cache[user_id] = {"user_name": user_name, "user_first_name": user_first_name}
 
 
 # Демон поток, который синхронизирует озу и пзу, кроме того, заставляет пересчитать топы
