@@ -31,8 +31,6 @@ if os.path.exists(FILE_USERS_PATH):
     with open(FILE_USERS_PATH, "r", encoding="utf-8") as f:
         users_cache = json.load(f)
 
-# Нужна ли перезапись бд
-
 bot = telebot.TeleBot(BOT_TOKEN, threaded=True, num_threads=8)
 
 while True:
