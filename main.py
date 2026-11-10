@@ -139,7 +139,11 @@ def handle_inline(query):
             recipient_user_name = parts[-1][1:]
             user_input_search = " ".join(parts[:-1])
 
-    recipient_first_name = users_cache.get(recipient_user_name, recipient_user_name)
+    for user in users_cache:
+        if users_cache[user].get("user_name") == recipient_user_name:
+            recipient_first_name = users_cache[user].get("user_first_name", None) or recipient_user_name if recipient_user_name !="" else user
+            break
+
     results = []
     for cmd in all_commands:
         emoji = cmd["title"].split()[0] + " | "
@@ -203,7 +207,7 @@ def button_worker(call):
         if str(call.from_user.id) != parts[2]:
             text = emoji + f"[{author_msg_first_name}]({"https://t.me/" + author_msg_user_name if author_msg_user_name is not None else "tg://user?id=" + author_msg_user_id}) " + \
                    cmd[
-                       "text_response"].lower() + f" [{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + call.from_user.id})"
+                       "text_response"].lower() + f" [{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + str(call.from_user.id)})"
             bot.edit_message_text(text, inline_message_id=call.inline_message_id,
                                   reply_markup=response_keyboard(author_msg_user_id),
                                   parse_mode="Markdown", disable_web_page_preview=True)
@@ -215,7 +219,7 @@ def button_worker(call):
         emoji = "❌ | "
         increment_uses(cmd_id)
         if str(call.from_user.id) != parts[2]:
-            text = emoji + f"[{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + call.from_user.id}) " + \
+            text = emoji + f"[{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + str(call.from_user.id)}) " + \
                    cmd["text_deny"]
             bot.edit_message_text(text, inline_message_id=call.inline_message_id,
                                   reply_markup=response_keyboard(author_msg_user_id),
