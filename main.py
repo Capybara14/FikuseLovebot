@@ -182,7 +182,7 @@ def handle_inline(query):
                 )
     bot.answer_inline_query(query.id, results, switch_pm_text="❤️ Инструкция",
                             switch_pm_parameter="instruction",
-                            cache_time=10, is_personal=True)
+                            cache_time=120, is_personal=True)
 
 
 # Обработчик нажатий кнопок
