@@ -17,7 +17,7 @@ OWNER_ID = os.getenv("OWNER_ID")
 IMGBB_KEY = os.getenv("IMGBB_KEY")
 FILE_COMMANDS_PATH = "commands.json"
 FILE_USERS_PATH = "users.json"
-LOCK = threading.Lock()
+LOCK = threading.RLock()
 TIMEOUT = 600
 LIMIT_OF_COMMANDS = 100
 
@@ -27,12 +27,18 @@ LIMIT_OF_COMMANDS = 100
 
 commands_cache = {}
 users_cache = {}
+usernames_cache = {}
 if os.path.exists(FILE_COMMANDS_PATH):
     with open(FILE_COMMANDS_PATH, "r", encoding="utf-8") as f:
         commands_cache = json.load(f)
 if os.path.exists(FILE_USERS_PATH):
     with open(FILE_USERS_PATH, "r", encoding="utf-8") as f:
         users_cache = json.load(f)
+
+for i in users_cache.values():
+    if i.get("user_name"):
+        usernames_cache[i["user_name"]] = i["user_first_name"]
+
 
 bot = telebot.TeleBot(BOT_TOKEN, threaded=True, num_threads=8)
 
@@ -57,7 +63,7 @@ def start_worker(message):
     parts = message.text.split()
     if len(parts) == 1:
         bot.reply_to(message,
-                     f'👋  *Привет! Это бот для RP команд.*\n\nПросто напиши `@{BOT_USERNAME}` и выбирай команду!',
+                     f'👋  *Привет! Это бот для RP команд.*\n\nПросто введи `@{BOT_USERNAME}` и выбирай команду!\n\nЕсли что-то не понятно, используй /help',
                      parse_mode="Markdown")
     elif parts[1] == "create_command":
         create_command(message)
@@ -68,6 +74,7 @@ def start_worker(message):
         bot_message = option_parts[2]
         bot.delete_message(message.chat.id, message.message_id)
         cmd = find_cmd(cmd_id)
+        if not cmd: return
         bot.edit_message_text(
             f"*👀  Детали команды:*\n\n"
             f"   • _Название:_ {cmd['title']}\n"
@@ -154,11 +161,7 @@ def handle_inline(query):
             recipient_user_name = parts[-1][1:]
             user_input_search = " ".join(parts[:-1])
 
-    recipient_first_name = recipient_user_name
-    for user in users_cache:
-        if users_cache[user].get("user_name") == recipient_user_name:
-            recipient_first_name = users_cache[user].get("user_first_name", recipient_user_name)
-            break
+    recipient_first_name = usernames_cache.get(recipient_user_name, recipient_user_name)
 
     results = []
     for cmd in all_commands:
@@ -218,6 +221,7 @@ def button_worker(call):
         author_msg_first_name = users_cache[author_msg_user_id].get("user_first_name",
                                                                     None) or author_msg_user_name or author_msg_user_id
         cmd = find_cmd(cmd_id)
+        if not cmd: return
         emoji = cmd["title"].split()[0] + " | "
         if str(call.from_user.id) != parts[2]:
             increment_uses(cmd_id)
@@ -232,6 +236,7 @@ def button_worker(call):
         cmd_id = parts[1]
         author_msg_user_id = parts[2]
         cmd = find_cmd(cmd_id)
+        if not cmd: return
         emoji = "❌ | "
         if str(call.from_user.id) != parts[2]:
             increment_uses(cmd_id)
@@ -261,7 +266,9 @@ def button_worker(call):
             cmd_id = parts[2]
             author_cmd_id = cmd_id.split("_")[0]
             cmd = find_cmd(cmd_id)
-            commands_cache[author_cmd_id].remove(cmd)
+            if not cmd: return
+            with LOCK:
+                commands_cache[author_cmd_id].remove(cmd)
         if len(parts) > 1:
             bot_message = parts[1]
         if commands_cache.get(str(call.from_user.id), None) is None or len(commands_cache[str(call.from_user.id)]) == 0:
@@ -278,11 +285,13 @@ def button_worker(call):
             parse_mode="Markdown")
     elif parts[0] == "btn_delete_command":
         try:
-            cmd_id = parts[1]
-            author_cmd_id = cmd_id.split("_")[0]
-            cmd = find_cmd(cmd_id)
-            commands_cache[author_cmd_id].remove(cmd)
-            text = f"✅ *Команда успешно удалена*"
+            with LOCK:
+                cmd_id = parts[1]
+                author_cmd_id = cmd_id.split("_")[0]
+                cmd = find_cmd(cmd_id)
+                if not cmd: return
+                commands_cache[author_cmd_id].remove(cmd)
+                text = f"✅ *Команда успешно удалена*"
         except:
             text = "❌ Ошибка удаления команды"
         bot.edit_message_text(
@@ -304,6 +313,7 @@ def find_cmd(cmd_id: str):
     for i in commands_cache[user_id]:
         if i["id"] == cmd_id:
             return i
+    return None
 
 
 # region КЛАВИАТУРЫ
@@ -321,9 +331,11 @@ def inquery_keyboard(cmd_id: str, user_id: str):
 # Клавиатура предлагающая ответить на успешно совершенное действие
 def response_keyboard(author_msg_user_id: str):
     markup = types.InlineKeyboardMarkup(row_width=1)
-    user_name = users_cache[author_msg_user_id]["user_name"]
+    user_data = users_cache.get(author_msg_user_id, {})
+    user_name = user_data.get("user_name")
+    text = f"@{user_name} " if user_name else " "
     btn_response = types.InlineKeyboardButton(text="Ответить",
-                                              switch_inline_query_current_chat=f"{"@" + user_name if user_name is not None else ""} ")
+                                              switch_inline_query_current_chat=text)
     markup.add(btn_response)
     return markup
 
@@ -441,12 +453,14 @@ def final_check(message, new_command):
     new_command["text_deny"] = clean_md(message.text).lower()
     user_id = str(message.from_user.id)
 
-    if user_id not in commands_cache or commands_cache[user_id] == []:
-        commands_cache[user_id] = []
-        commands_max_num = 0
-    else:
-        commands_max_num = max([int(i["id"].split("_")[1]) for i in commands_cache[user_id]]) + 1
-    commands_cache[user_id].append(new_command | {"id": f"{user_id}_{commands_max_num}", "uses_count": "0"})
+    with LOCK:
+        if user_id not in commands_cache or commands_cache[user_id] == []:
+            commands_cache[user_id] = []
+            commands_max_num = 0
+        else:
+            commands_max_num = max([int(i["id"].split("_")[1]) for i in commands_cache[user_id]]) + 1
+        commands_cache[user_id].append(new_command | {"id": f"{user_id}_{commands_max_num}", "uses_count": "0"})
+
     bot_message = bot.reply_to(
         message,
         "_Сохранение данных..._",
@@ -493,11 +507,13 @@ def handle_chosen_inline(result):
 
 # Добавляет единичку к использованию команды
 def increment_uses(cmd_id: str):
-    user_id = cmd_id.split("_")[0]
-    cmd = find_cmd(cmd_id)
-    commands_cache[user_id].remove(cmd)
-    cmd["uses_count"] = str(int(cmd.get("uses_count", 0)) + 1)
-    commands_cache[user_id].append(cmd)
+    with LOCK:
+        user_id = cmd_id.split("_")[0]
+        cmd = find_cmd(cmd_id)
+        if not cmd: return
+        commands_cache[user_id].remove(cmd)
+        cmd["uses_count"] = str(int(cmd.get("uses_count", 0)) + 1)
+        commands_cache[user_id].append(cmd)
 
 
 # превращение стикера в правильную пнг и загрузка на сервак
@@ -521,12 +537,13 @@ def process_and_upload_sticker(raw_bytes):
 
 # Добавляет ферстнейм и юзернейм в кеш
 def save_user(user):
-    user_id = str(user.id)
-    user_name = user.username
-    user_first_name = clean_md(user.first_name)
-    if users_cache.get(user_id, None) is None or users_cache[user_id]["user_name"] != user_name or users_cache[user_id][
-        "user_first_name"] != user_first_name:
-        users_cache[user_id] = {"user_name": user_name, "user_first_name": user_first_name}
+    with LOCK:
+        user_id = str(user.id)
+        user_name = user.username
+        user_first_name = clean_md(user.first_name)
+        if users_cache.get(user_id, None) is None or users_cache[user_id]["user_name"] != user_name or users_cache[user_id][
+            "user_first_name"] != user_first_name:
+            users_cache[user_id] = {"user_name": user_name, "user_first_name": user_first_name}
 
 
 # Демон поток, который синхронизирует озу и пзу, кроме того, заставляет пересчитать топы
@@ -542,6 +559,9 @@ def file_saver():
                 with open(FILE_COMMANDS_PATH + ".tmp", "w", encoding="utf-8") as f:
                     json.dump(commands_cache, f, ensure_ascii=False, indent=2)
                 os.replace(FILE_COMMANDS_PATH + ".tmp", FILE_COMMANDS_PATH)
+                for i in users_cache.values():
+                    if i.get("user_name"):
+                        usernames_cache[i["user_name"]] = i["user_first_name"]
         except Exception as e:
             print(f"Ошибка фонового сохранения: {e}")
         time.sleep(TIMEOUT)
@@ -549,29 +569,30 @@ def file_saver():
 
 # Вычисляет топ популярных команд
 def top_calculator(is_top=False, user_id=None):
-    if is_top:
-        commands_cache["top"] = []
-        all_commands = (cmd for author_cmd_id in commands_cache for cmd in commands_cache[author_cmd_id])
-        top = heapq.nlargest(100, all_commands, key=lambda x: int(x["uses_count"]))
-        for cmd in top:
-            commands_cache["top"].append(cmd)
-    else:
-        user_id = str(user_id)
-        if user_id in commands_cache:
-            commands_cache[user_id] = sorted(commands_cache[user_id], key=lambda x: int(x["uses_count"]), reverse=True)
+    with LOCK:
+        if is_top:
+            commands_cache["top"] = []
+            all_commands = (cmd for author_cmd_id in commands_cache for cmd in commands_cache[author_cmd_id])
+            top = heapq.nlargest(100, all_commands, key=lambda x: int(x["uses_count"]))
+            for cmd in top:
+                commands_cache["top"].append(cmd)
+        else:
+            user_id = str(user_id)
+            if user_id in commands_cache:
+                commands_cache[user_id] = sorted(commands_cache[user_id], key=lambda x: int(x["uses_count"]), reverse=True)
 
 
 # сброс озу в пзу по кнопке остановки
 def handle_exit(signum, frame):
-    with open(FILE_USERS_PATH + ".tmp", "w", encoding="utf-8") as f:
-        json.dump(users_cache, f, ensure_ascii=False, indent=2)
-    os.replace(FILE_USERS_PATH + ".tmp", FILE_USERS_PATH)
-    with open(FILE_COMMANDS_PATH + ".tmp", "w", encoding="utf-8") as f:
-        json.dump(commands_cache, f, ensure_ascii=False, indent=2)
-    os.replace(FILE_COMMANDS_PATH + ".tmp", FILE_COMMANDS_PATH)
-
-    bot.stop_polling()
-    sys.exit(0)
+    with LOCK:
+        with open(FILE_USERS_PATH + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(users_cache, f, ensure_ascii=False, indent=2)
+        os.replace(FILE_USERS_PATH + ".tmp", FILE_USERS_PATH)
+        with open(FILE_COMMANDS_PATH + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(commands_cache, f, ensure_ascii=False, indent=2)
+        os.replace(FILE_COMMANDS_PATH + ".tmp", FILE_COMMANDS_PATH)
+        bot.stop_polling()
+        sys.exit(0)
 
 
 # endregion
