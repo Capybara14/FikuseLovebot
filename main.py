@@ -98,7 +98,7 @@ def my_commands_worker(message):
         text = f"*Ваши команды:*\n\n"
         for cmd in commands_cache[str(message.from_user.id)]:
             text += f"   — {cmd["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd["id"]}_{bot_message.message_id}))\n\n"
-        text += f"(_Команды в списке доступных могут обновляться с задержкой_)"
+        text += f" "
     bot.edit_message_text(text, message.chat.id, bot_message.message_id, parse_mode="Markdown",
                           reply_markup=commands_keyboard())
 
@@ -277,7 +277,7 @@ def button_worker(call):
             text = f"*Ваши команды:*\n\n"
             for cmd_id in commands_cache[str(call.from_user.id)]:
                 text += f"   — {cmd_id["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd_id["id"]}_{bot_message}))\n\n"
-            text += f"(_Команды в списке доступных могут обновляться с задержкой_)"
+            text += f" "
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -484,7 +484,7 @@ def final_check(message, new_command):
 # Завершение
 def successfully_create(call):
     bot.edit_message_text(
-        text="*Команда успешно сохранена!*",
+        text="*Команда успешно сохранена!*\n\nКоманда станет доступна в ближайшие несколько минут.",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         reply_markup=back_keyboard(call.message.message_id),
