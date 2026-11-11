@@ -264,7 +264,6 @@ def button_worker(call):
             commands_cache[author_cmd_id].remove(cmd)
         if len(parts) > 1:
             bot_message = parts[1]
-
         if commands_cache.get(str(call.from_user.id), None) is None or len(commands_cache[str(call.from_user.id)]) == 0:
             text = "😶  *У вас ещё нет команд, выберите действие*"
         else:
@@ -553,7 +552,7 @@ def top_calculator(is_top=False, user_id=None):
     if is_top:
         commands_cache["top"] = []
         all_commands = (cmd for author_cmd_id in commands_cache for cmd in commands_cache[author_cmd_id])
-        top = heapq.nlargest(50, all_commands, key=lambda x: int(x["uses_count"]))
+        top = heapq.nlargest(100, all_commands, key=lambda x: int(x["uses_count"]))
         for cmd in top:
             commands_cache["top"].append(cmd)
     else:
