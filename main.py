@@ -203,7 +203,7 @@ def handle_inline(query):
                 )
     bot.answer_inline_query(query.id, results, switch_pm_text="💚  Создать свою команду",
                             switch_pm_parameter="create_command",
-                            cache_time=TIMEOUT // 5, is_personal=True)
+                            cache_time=TIMEOUT // 2, is_personal=True)
 
 
 # Обработчик нажатий кнопок
