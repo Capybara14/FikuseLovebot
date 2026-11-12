@@ -514,6 +514,7 @@ def increment_uses(cmd_id: str):
         commands_cache[user_id].remove(cmd)
         cmd["uses_count"] = str(int(cmd.get("uses_count", 0)) + 1)
         commands_cache[user_id].append(cmd)
+        top_calculator(False, user_id)
 
 
 # превращение стикера в правильную пнг и загрузка на сервак
