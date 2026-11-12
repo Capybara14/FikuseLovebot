@@ -394,7 +394,7 @@ def enter_the_name(message):
     new_command = {"title": clean_md(message.text).capitalize()}
     msg = bot.reply_to(
         message,
-        "*Введите эмодзи для команды*\n\n(_Будет располагаться рядом с названием и действием_)",
+        "*Введите эмодзи для команды*\n\n(_Будет располагаться рядом с названием_)",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_the_emoji, new_command)
@@ -404,7 +404,7 @@ def enter_the_emoji(message, new_command):
     new_command["title"] = f"{clean_md(message.text)} {new_command['title']}"
     msg = bot.reply_to(
         message,
-        "*Отправьте стикер для иконки команды*\n\n(_Или напишите /skip для пропуска_)",
+        "*Отправьте статичный стикер для иконки команды*\n\n(_Напишите /skip для пропуска_)",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_the_sticker, new_command)
@@ -421,7 +421,7 @@ def enter_the_sticker(message, new_command):
             pass
     new_command["thumb_url"] = thumb_url
     msg = bot.reply_to(message,
-                       "*Введите текст запроса на действие*\n\n(_Перед ним будет твой ник. Пример: _`хочет поцеловать`)",
+                       "*Введите текст запроса на действие*\n\n\\[Твой ник]  *ТЕКСТ*\n\n(_Пример: _`хочет поцеловать`)",
                        parse_mode="Markdown")
     bot.register_next_step_handler(msg, enter_text_inquery, new_command)
 
@@ -431,7 +431,7 @@ def enter_text_inquery(message, new_command):
     new_command["text_inquery"] = clean_md(message.text).lower()
     msg = bot.reply_to(
         message,
-        "*Введите текст совершённого действия*\n\n(_Перед ним будет твой ник, а после него ник того, кто принял. Пример: _`поцеловал(а)`)",
+        "*Введите текст совершённого действия*\n\n\\[Твой ник] *ТЕКСТ* \\[Ник того, кто принял]\n\n(_Пример: _`поцеловал(а)`)",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, enter_text_response, new_command)
@@ -442,7 +442,7 @@ def enter_text_response(message, new_command):
     new_command["text_response"] = clean_md(message.text).lower()
     msg = bot.reply_to(
         message,
-        "*Введите текст отказа от действия*\n\n(_Перед ним будет ник того, кто отклонил. Пример: _`не хочет целоваться`)",
+        "*Введите текст отказа от действия*\n\n\\[Ник того, кто отказался] *ТЕКСТ*\n\n(_Пример: _`не хочет целоваться`)",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, final_check, new_command)
