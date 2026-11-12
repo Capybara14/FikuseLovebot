@@ -107,15 +107,9 @@ def my_commands_worker(message):
 @bot.message_handler(commands=['help'])
 def help_worker(message):
     bot.reply_to(message,
-                 "*💚  Инструкция и советы:*\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • В списке команд всегда отображаются сначала твои, потом чужие, отсортированные по частоте использования\n\n*👾  Доступные команды:*\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд\n    /refresh — обновить сортировку твоих команд (более популярные сверху)",
+                 "*💚  Инструкция и советы:*\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • В списке команд всегда отображаются сначала твои, потом чужие, отсортированные по частоте использования\n\n*👾  Доступные команды:*\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд",
                  parse_mode="Markdown")
     bot.clear_step_handler_by_chat_id(chat_id=message.chat.id)
-
-
-@bot.message_handler(commands=['refresh'])
-def refresh_worker(message):
-    top_calculator(False, message.from_user.id)
-    bot.reply_to(message, "*♻️  Команды успешно отсортированы*", parse_mode="Markdown")
 
 
 @bot.message_handler(commands=['new_command'])
@@ -299,13 +293,6 @@ def button_worker(call):
             message_id=call.message.message_id,
             text=text, reply_markup=back_keyboard(call.message.message_id),
             parse_mode="Markdown")
-    elif parts[0] == "btn_refresh":
-        top_calculator(False, call.from_user.id)
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="*♻️  Команды успешно отсортированы*", reply_markup=back_keyboard(call.message.message_id),
-            parse_mode="Markdown")
 
 
 def find_cmd(cmd_id: str):
@@ -344,8 +331,7 @@ def response_keyboard(author_msg_user_id: str):
 def commands_keyboard():
     markup = types.InlineKeyboardMarkup(row_width=1)
     btn_add_command = types.InlineKeyboardButton("➕ Создать команду", callback_data="btn_add_command")
-    btn_refresh = types.InlineKeyboardButton("🔄️ Отсортировать команды", callback_data="btn_refresh")
-    markup.add(btn_add_command, btn_refresh)
+    markup.add(btn_add_command)
     return markup
 
 
@@ -511,9 +497,7 @@ def increment_uses(cmd_id: str):
         user_id = cmd_id.split("_")[0]
         cmd = find_cmd(cmd_id)
         if not cmd: return
-        commands_cache[user_id].remove(cmd)
         cmd["uses_count"] = str(int(cmd.get("uses_count", 0)) + 1)
-        commands_cache[user_id].append(cmd)
         top_calculator(False, user_id)
 
 
