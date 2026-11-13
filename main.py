@@ -130,7 +130,7 @@ def create_command(message):
 # Обработчик инлайн режима
 @bot.inline_handler(lambda query: True)
 def handle_inline(query):
-    user_input = query.query.strip()
+    user_input = query.query.strip().lower()
     user_id = str(query.from_user.id)
     user_first_name = query.from_user.first_name
     user_name = query.from_user.username
@@ -524,7 +524,7 @@ def process_and_upload_sticker(raw_bytes):
 def save_user(user):
     with LOCK:
         user_id = str(user.id)
-        user_name = user.username
+        user_name = user.username.lower()
         user_first_name = clean_md(user.first_name)
         if users_cache.get(user_id, None) is None or users_cache[user_id]["user_name"] != user_name or users_cache[user_id][
             "user_first_name"] != user_first_name:
