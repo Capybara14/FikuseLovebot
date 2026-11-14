@@ -133,7 +133,7 @@ def handle_inline(query):
     user_input = query.query.strip().lower()
     user_id = str(query.from_user.id)
     user_first_name = query.from_user.first_name
-    user_name = query.from_user.username
+    user_name = query.from_user.username.lower()
 
     save_user(query.from_user)
 
@@ -155,7 +155,7 @@ def handle_inline(query):
             recipient_user_name = parts[-1][1:]
             user_input_search = " ".join(parts[:-1])
 
-    recipient_first_name = usernames_cache.get(recipient_user_name, recipient_user_name)
+    recipient_first_name = usernames_cache.get(recipient_user_name, recipient_user_name).lower()
 
     results = []
     for cmd in all_commands:
