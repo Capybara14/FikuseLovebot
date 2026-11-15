@@ -9,7 +9,7 @@ def response_keyboard(user_name):
 
 # Клавиатура меню команд
 def commands_keyboard():
-    kb = [[InlineKeyboardButton(text="➕ Создать команду", callback_data="btn_add_command")]]
+    kb = [[InlineKeyboardButton(text="➕ Создать команду", callback_data="btn_add_command", style="primary")]]
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 
