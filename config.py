@@ -10,5 +10,5 @@ OWNER_ID = os.getenv("OWNER_ID")
 IMGBB_KEY = os.getenv("IMGBB_KEY")
 FILE_COMMANDS_PATH = "commands.json"
 FILE_USERS_PATH = "users.json"
-TIMEOUT = 600
+TIMEOUT = 10
 LIMIT_OF_COMMANDS = 100

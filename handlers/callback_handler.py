@@ -2,8 +2,8 @@ from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
 import config
-from handlers.create_command import CreateCmd
-from keyboards.chat_mode_keyboards import back_keyboard
+from handlers.create_command import CreateCmd, successfully_create
+from keyboards.chat_mode_keyboards import back_keyboard, commands_keyboard
 from keyboards.inline_mode_keyboards import response_keyboard
 
 callback_handler_router = Router()
@@ -11,7 +11,7 @@ callback_handler_router = Router()
 
 # 1. Кнопки из инлайн-сообщений (в любом чате)
 @callback_handler_router.callback_query(F.inline_message_id, F.data.startswith("btn_"))
-async def inline_buttons_handler(call: types.CallbackQuery, storage):
+async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
     await call.answer()
     storage.save_user(call.from_user)
     parts = call.data.split(" ")
@@ -60,7 +60,7 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage):
 
 # 2. Кнопки из обычных сообщений в ЛС
 @callback_handler_router.callback_query(F.message, F.data.startswith("btn_"))
-async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMContext):
+async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMContext, bot):
     await call.answer()
     storage.save_user(call.from_user)
     parts = call.data.split(" ")
@@ -80,52 +80,45 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
                                              reply_markup=back_keyboard(call.message.message_id), parse_mode="Markdown")
 
     elif parts[0] == "btn_all_right":
-        successfully_create(call)
+        await successfully_create(call, bot)
 
     elif parts[0] == "btn_back":
-        bot.clear_step_handler_by_chat_id(call.message.chat.id)
-        bot_message = call.message.message_id
+        await state.clear()
+        bot_message_id = call.message.message_id
         if len(parts) > 2:
             cmd_id = parts[2]
             author_cmd_id = cmd_id.split("_")[0]
-            cmd = find_cmd(cmd_id)
+            cmd = storage.find_cmd(cmd_id)
             if not cmd: return
-            commands_cache[author_cmd_id].remove(cmd)
+            storage.commands_cache[author_cmd_id].remove(cmd)
         if len(parts) > 1:
-            bot_message = parts[1]
-        if commands_cache.get(str(call.from_user.id), None) is None or len(commands_cache[str(call.from_user.id)]) == 0:
+            bot_message_id = parts[1]
+        if storage.commands_cache.get(str(call.from_user.id), None) is None or len(storage.commands_cache[str(call.from_user.id)]) == 0:
             text = "😶  *У вас ещё нет команд, выберите действие*"
         else:
             text = f"*Ваши команды:*\n\n"
-            for cmd_id in commands_cache[str(call.from_user.id)]:
-                text += f"   — {cmd_id["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd_id["id"]}_{bot_message}))\n\n"
+            for cmd in storage.commands_cache[str(call.from_user.id)]:
+                text += f"   — {cmd["title"]} ([Детали](https://t.me/{config.BOT_USERNAME}?start={cmd["id"]}_{bot_message_id}))\n\n"
             text += f" "
-        bot.edit_message_text(
+        await bot.edit_message_text(
+            text=text,
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text=text, reply_markup=commands_keyboard(),
+            reply_markup=commands_keyboard(),
             parse_mode="Markdown")
 
     elif parts[0] == "btn_delete_command":
         try:
             cmd_id = parts[1]
             author_cmd_id = cmd_id.split("_")[0]
-            cmd = find_cmd(cmd_id)
+            cmd = storage.find_cmd(cmd_id)
             if not cmd: return
-            commands_cache[author_cmd_id].remove(cmd)
+            storage.commands_cache[author_cmd_id].remove(cmd)
             text = f"✅ *Команда успешно удалена*"
         except:
             text = "❌ Ошибка удаления команды"
-        bot.edit_message_text(
+        await bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
             text=text, reply_markup=back_keyboard(call.message.message_id),
-            parse_mode="Markdown")
-
-    elif parts[0] == "btn_refresh":
-        top_calculator(False, call.from_user.id)
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="*♻️  Команды успешно отсортированы*", reply_markup=back_keyboard(call.message.message_id),
             parse_mode="Markdown")

@@ -15,10 +15,10 @@ async def start_worker(message: types.Message, storage, bot, state):
     parts = message.text.split()
     if len(parts) == 1:
         await message.reply(
-            text='👋  *Привет! Это бот для RP команд.*\n\nПросто введи `@{BOT_USERNAME}` и выбирай команду!\n\nЕсли что-то не понятно, используй /help',
+            text=f'👋  *Привет! Это бот для RP команд.*\n\nПросто введи `@{config.BOT_USERNAME}` и выбирай команду!\n\nЕсли что-то не понятно, используй /help',
             parse_mode="Markdown")
     elif parts[1] == "create_command":
-        await create_command(message, storage, state)
+        await create_command(message, storage, state, bot)
     else:
         option_parts = parts[1].split("_")
         user_id = option_parts[0]
@@ -28,16 +28,16 @@ async def start_worker(message: types.Message, storage, bot, state):
         cmd = storage.find_cmd(cmd_id)
         if not cmd: return
         await bot.edit_message_text(text=
-                              f"*👀  Детали команды:*\n\n"
-                              f"   • _Название:_ {cmd['title']}\n"
-                              f"   • _Текст запроса:_ {cmd['text_inquery']}\n"
-                              f"   • _Текст согласия:_ {cmd['text_response']}\n"
-                              f"   • _Текст отказа:_ {cmd['text_deny']}\n"
-                              f"   • _Стикер-превью:_ {"есть" if cmd.get("thumb_url", None) else "отсутствует"}\n\n"
-                              f"_Число использований:_ {cmd['uses_count']}\n",
-                              chat_id=message.chat.id,
-                              message_id=bot_message,
-                              reply_markup=command_details_keyboard(cmd_id, bot_message), parse_mode="Markdown")
+                                    f"*👀  Детали команды:*\n\n"
+                                    f"   • _Название:_ {cmd['title']}\n"
+                                    f"   • _Текст запроса:_ {cmd['text_inquery']}\n"
+                                    f"   • _Текст согласия:_ {cmd['text_response']}\n"
+                                    f"   • _Текст отказа:_ {cmd['text_deny']}\n"
+                                    f"   • _Стикер-превью:_ {"есть" if cmd.get("thumb_url", None) else "отсутствует"}\n\n"
+                                    f"_Число использований:_ {cmd['uses_count']}\n",
+                                    chat_id=message.chat.id,
+                                    message_id=bot_message,
+                                    reply_markup=command_details_keyboard(cmd_id, bot_message), parse_mode="Markdown")
 
 
 # Меню команд
@@ -57,20 +57,24 @@ async def my_command_worker(message: types.Message, state: FSMContext, storage):
 
 @commands_router.message(Command("help"))
 async def help_worker(message):
-    await message.reply(text="*💚  Инструкция и советы:*\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • В списке команд всегда отображаются сначала твои, потом чужие, отсортированные по частоте использования\n\n*👾  Доступные команды:*\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд",
-                 parse_mode="Markdown")
+    await message.reply(
+        text="*💚  Инструкция и советы:*\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • В списке команд всегда отображаются сначала твои, потом чужие, отсортированные по частоте использования\n\n*👾  Доступные команды:*\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд",
+        parse_mode="Markdown")
 
 
 @commands_router.message(Command("new_command"))
-async def create_command_worker(message, storage, state):
-    await create_command(message, storage, state)
+async def create_command_worker(message, storage, state, bot):
+    await create_command(message, storage, state, bot)
 
 
-async def create_command(message: types.Message, storage, state: FSMContext):
+async def create_command(message: types.Message, storage, state: FSMContext, bot):
     if len(storage.commands_cache.get(str(message.from_user.id), [])) < config.LIMIT_OF_COMMANDS:
-        await message.reply(text="*Введите название своей команды*\n\n(_Пример:_ `Поцелуй`)",
-                           reply_markup=back_keyboard(message.message_id),
-                           parse_mode="Markdown")
+        bot_message = await message.reply(text="_Загрузка..._", parse_mode="Markdown")
+        await bot.edit_message_text(text="*Введите название своей команды*\n\n(_Пример:_ `Поцелуй`)",
+                                    chat_id=message.chat.id,
+                                    message_id=bot_message.message_id,
+                                    reply_markup=back_keyboard(bot_message.message_id),
+                                    parse_mode="Markdown")
         await state.set_state(CreateCmd.title)
     else:
         await message.reply(text="☹️  *Вы достигли максимального числа команд*",

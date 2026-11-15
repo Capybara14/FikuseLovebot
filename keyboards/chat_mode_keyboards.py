@@ -28,8 +28,8 @@ def back_keyboard(bot_message):
 
 
 # Клавиатура подтверждения, что все верно или отклонения
-def final_step_keyboard(cmd_id, bot_message):
+def final_step_keyboard(cmd_id, bot_message_id):
     kb = [[InlineKeyboardButton(text="Все верно!", callback_data="btn_all_right", style="success")],
-    [InlineKeyboardButton(text="Отмена", callback_data=f"btn_back {bot_message} {cmd_id}",
+    [InlineKeyboardButton(text="Отмена", callback_data=f"btn_back {bot_message_id} {cmd_id}",
                                           style="danger")]]
     return InlineKeyboardMarkup(inline_keyboard=kb)

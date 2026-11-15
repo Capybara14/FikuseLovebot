@@ -7,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
 from database.sticker import process_and_upload_sticker
+from keyboards.chat_mode_keyboards import final_step_keyboard, back_keyboard
 from utils.text import clean_md
 
 create_command_router = Router()
@@ -25,7 +26,7 @@ class CreateCmd(StatesGroup):
 async def enter_the_name(message: types.Message, state: FSMContext):
     await state.update_data(title=clean_md(message.text).capitalize())
     await message.reply(
-        text="*Введите эмодзи для команды*\n\n(_Будет располагаться рядом с названием и действием_)",
+        text="*Введите эмодзи для команды*\n\n(_Будет располагаться рядом с названием_)",
         parse_mode="Markdown"
     )
     await state.set_state(CreateCmd.emoji)
@@ -33,8 +34,8 @@ async def enter_the_name(message: types.Message, state: FSMContext):
 
 @create_command_router.message(CreateCmd.emoji, F.text)
 async def enter_the_emoji(message: types.Message, state: FSMContext):
-    await state.update_data(title=await state.get_value("title") + clean_md(message.text))
-    await message.reply(text="*Отправьте стикер для иконки команды*\n\n(_Или напишите /skip для пропуска_)",
+    await state.update_data(title=clean_md(message.text) + " " + await state.get_value("title"))
+    await message.reply(text="*Отправьте стикер для иконки команды*\n\n(_Напишите /skip для пропуска_)",
                         parse_mode="Markdown")
     await state.set_state(CreateCmd.thumb_url)
 
@@ -43,7 +44,7 @@ async def enter_the_emoji(message: types.Message, state: FSMContext):
 async def skip_sticker(message: types.Message, state: FSMContext):
     await state.update_data(thumb_url=None)
     await message.reply(
-        text="*Введите текст запроса на действие*\n\n(_Перед ним будет твой ник. Пример: _`хочет поцеловать`)",
+        text="*Введите текст запроса на действие*\n\n\\[Твой ник]  *ТЕКСТ*\n\n(_Пример: _`хочет поцеловать`)",
         parse_mode="Markdown")
     await state.set_state(CreateCmd.inquery)
 
@@ -68,7 +69,7 @@ async def enter_the_sticker(message: types.Message, bot: Bot, state: FSMContext)
 
     await state.update_data(thumb_url=thumb_url)
     await message.reply(
-        text="*Введите текст запроса на действие*\n\n(_Перед ним будет твой ник. Пример: _`хочет поцеловать`)",
+        text="*Введите текст запроса на действие*\n\n\\[Твой ник]  *ТЕКСТ*\n\n(_Пример: _`хочет поцеловать`)",
         parse_mode="Markdown"
     )
     await state.set_state(CreateCmd.inquery)
@@ -76,26 +77,27 @@ async def enter_the_sticker(message: types.Message, bot: Bot, state: FSMContext)
 
 @create_command_router.message(CreateCmd.inquery, F.text)
 async def enter_text_inquery(message, state):
-    await state.update_data(inquery=clean_md(message.text))
+    await state.update_data(inquery=clean_md(message.text).lower())
     await message.reply(
-        text="*Введите текст совершённого действия*\n\n(_Перед ним будет твой ник, а после него ник того, кто принял. Пример: _`поцеловал(а)`)",
+        text="*Введите текст совершённого действия*\n\n\\[Твой ник] *ТЕКСТ* \\[Ник того, кто принял]\n\n(_Пример: _`поцеловал(а)`)",
         parse_mode="Markdown"
-        )
+    )
     await state.set_state(CreateCmd.response)
 
 
 @create_command_router.message(CreateCmd.response, F.text)
 async def enter_text_response(message, state):
-    await state.update_data(response=clean_md(message.text))
+    await state.update_data(response=clean_md(message.text).lower())
     await message.reply(
-        "*Введите текст отказа от действия*\n\n(_Перед ним будет ник того, кто отклонил. Пример: _`не хочет целоваться`)",
+        "*Введите текст отказа от действия*\n\n\\[Ник того, кто отказался] *ТЕКСТ*\n\n(_Пример: _`не хочет целоваться`)",
         parse_mode="Markdown"
     )
     await state.set_state(CreateCmd.deny)
 
+
 @create_command_router.message(CreateCmd.deny, F.text)
-async def final_check(message, state, storage):
-    await state.update_data(deny=clean_md(message.text))
+async def final_check(message, state, bot, storage):
+    await state.update_data(deny=clean_md(message.text).lower())
 
     user_id = str(message.from_user.id)
     data = await state.get_data()
@@ -115,11 +117,8 @@ async def final_check(message, state, storage):
         commands_max_num = max([int(i["id"].split("_")[1]) for i in storage.commands_cache[user_id]]) + 1
     storage.commands_cache[user_id].append(new_command | {"id": f"{user_id}_{commands_max_num}"})
 
-    bot_message = bot.reply_to(
-        message,
-        "_Сохранение данных..._",
-        parse_mode="Markdown")
-    bot.edit_message_text(
+    bot_message = await message.reply(text="_Сохранение данных..._", parse_mode="Markdown")
+    await bot.edit_message_text(
         text=f"*Проверьте правильность ввода:*\n\n"
              f"   • _Название:_ {new_command['title']}\n"
              f"   • _Запрос:_ {new_command['text_inquery']}\n"
@@ -131,14 +130,13 @@ async def final_check(message, state, storage):
         reply_markup=final_step_keyboard(f"{user_id}_{commands_max_num}", bot_message.message_id),
         parse_mode="Markdown"
     )
-
-    top_calculator(False, user_id)
+    await state.clear()
 
 
 # Завершение
-def successfully_create(call):
-    bot.edit_message_text(
-        text="*Команда успешно сохранена!*\n\nКоманда станет доступна в ближайшие несколько минут.",
+async def successfully_create(call, bot):
+    await bot.edit_message_text(
+        text="*Команда успешно сохранена!*.",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         reply_markup=back_keyboard(call.message.message_id),

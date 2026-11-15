@@ -50,7 +50,7 @@ class Storage:
     # Добавляет ферстнейм и юзернейм в кеш
     def save_user(self, user):
         user_id = str(user.id)
-        user_name = user.username
+        user_name = user.username.lower()
         user_first_name = clean_md(user.first_name)
         if self.users_cache.get(user_id, None) is None or self.users_cache[user_id]["user_name"] != user_name or \
                 self.users_cache[user_id][
@@ -65,6 +65,7 @@ class Storage:
         self.commands_cache[user_id].remove(cmd)
         cmd["uses_count"] = str(int(cmd.get("uses_count", 0)) + 1)
         self.commands_cache[user_id].append(cmd)
+        self.commands_sort(user_id)
 
     def find_cmd(self, cmd_id: str):
         user_id = cmd_id.split("_")[0]
@@ -75,6 +76,7 @@ class Storage:
 
     # Вычисляет топ популярных команд
     def top_calculator(self):
+        self.commands_top = []
         all_commands = (cmd for author_cmd_id in self.commands_cache for cmd in self.commands_cache[author_cmd_id])
         top = heapq.nlargest(100, all_commands, key=lambda x: int(x["uses_count"]))
         for cmd in top:

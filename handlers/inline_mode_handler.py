@@ -1,5 +1,6 @@
-from aiogram import Router, types
+from aiogram import Router, types, F
 from config import EMOJI_TEMPLATE
+from database.storage import Storage
 from utils.text import clean_md
 from keyboards.inline_mode_keyboards import inquery_keyboard, response_keyboard
 
@@ -8,7 +9,7 @@ inline_handler_router = Router()
 
 @inline_handler_router.inline_query()
 async def inline_handler(query: types.InlineQuery, storage):
-    user_input = clean_md(query.query.strip())
+    user_input = clean_md(query.query.strip()).lower()
     user_id = str(query.from_user.id)
     user_first_name = clean_md(query.from_user.first_name)
     user_name = clean_md(query.from_user.username)
@@ -19,6 +20,7 @@ async def inline_handler(query: types.InlineQuery, storage):
     user_commands = storage.commands_cache.get(user_id, [])
     user_cmd_ids = {cmd["id"] for cmd in user_commands}
     all_commands = user_commands + [cmd for cmd in storage.commands_top if cmd["id"] not in user_cmd_ids]
+
     # Находим юзернейм получателя
     recipient_user_name = ""
     user_input_search = user_input.lower()
@@ -77,3 +79,8 @@ async def inline_handler(query: types.InlineQuery, storage):
     await query.answer(results, button=types.InlineQueryResultsButton(text="💚  Создать свою команду",
                                                                       start_parameter="create_command"),
                        cache_time=10, is_personal=True)
+
+
+@inline_handler_router.chosen_inline_result(F.query.contains("@"))
+async def handle_chosen_inline(result: types.ChosenInlineResult, storage: Storage):
+    storage.increment_uses(result.result_id)
