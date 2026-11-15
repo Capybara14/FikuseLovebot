@@ -3,7 +3,7 @@ import heapq
 import json
 import os
 
-from utils.text import clean_md
+import config
 
 
 def _write_file(path: str, data: str) -> None:
@@ -47,15 +47,6 @@ class Storage:
                 print(f"Ошибка фонового сохранения: {e}")
             if once: break
 
-    # Добавляет ферстнейм и юзернейм в кеш
-    def save_user(self, user):
-        user_id = str(user.id)
-        user_name = user.username.lower()
-        user_first_name = clean_md(user.first_name)
-        if self.users_cache.get(user_id, None) is None or self.users_cache[user_id]["user_name"] != user_name or \
-                self.users_cache[user_id][
-                    "user_first_name"] != user_first_name:
-            self.users_cache[user_id] = {"user_name": user_name, "user_first_name": user_first_name}
 
     # Добавляет единичку к использованию команды
     def increment_uses(self, cmd_id: str):
@@ -87,3 +78,14 @@ class Storage:
         if user_id in self.commands_cache:
             self.commands_cache[user_id] = sorted(self.commands_cache[user_id], key=lambda x: int(x["uses_count"]),
                                                   reverse=True)
+
+    #Банит пользователя и удаляет все его команды
+    def set_ban(self, user_id: str, status: bool):
+        if status and user_id in config.ADMINS:
+            return
+        if status:
+            self.users_cache[user_id]["is_banned"] = True
+            self.commands_cache[user_id] = []
+            self.top_calculator()
+        else:
+            self.users_cache[user_id]["is_banned"] = False

@@ -11,7 +11,6 @@ commands_router = Router()
 
 @commands_router.message(Command("start"))
 async def start_worker(message: types.Message, storage, bot, state):
-    storage.save_user(message.from_user)
     parts = message.text.split()
     if len(parts) == 1:
         await message.reply(
@@ -79,3 +78,21 @@ async def create_command(message: types.Message, storage, state: FSMContext, bot
     else:
         await message.reply(text="☹️  *Вы достигли максимального числа команд*",
                             reply_markup=back_keyboard(message.message_id), parse_mode="Markdown")
+
+
+@commands_router.message(Command("ban"))
+async def ban_worker(message, storage, state, bot):
+    if str(message.from_user.id) in config.ADMINS:
+        user_id = message.text.split(" ", 1)[1]
+        storage.set_ban(user_id, True)
+        await message.reply(
+            text=f"*Пользователь {user_id} забанен.*\nОн не сможет использовать бота ни в каком виде, а все его команды удалены.",
+            parse_mode="Markdown")
+
+
+@commands_router.message(Command("unban"))
+async def unban_worker(message, storage, state, bot):
+    if str(message.from_user.id) in config.ADMINS:
+        user_id = message.text.split(" ", 1)[1]
+        storage.set_ban(user_id, False)
+        await message.reply(text=f"*Пользователь {user_id} разбанен.*", parse_mode="Markdown")

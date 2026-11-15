@@ -5,6 +5,8 @@ from aiogram.types import BotCommand
 from handlers import handler_router
 from database.storage import Storage
 import config
+from utils.global_middleware import ban_middleware, save_user_middleware
+from utils.global_middleware import AntiSpamMiddleware
 
 dp = Dispatcher()
 
@@ -12,7 +14,6 @@ dp = Dispatcher()
 @dp.startup()
 async def on_startup(storage: Storage):
     dp["save_task"] = asyncio.create_task(storage.save_cache())
-
 
 
 @dp.shutdown()
@@ -27,13 +28,25 @@ async def on_shutdown(storage: Storage):
 
 async def main():
     bot = Bot(token=config.BOT_TOKEN)
+
     storage = Storage(config.FILE_USERS_PATH, config.FILE_COMMANDS_PATH, config.TIMEOUT)
     storage.load_cache()
+
+    dp.update.outer_middleware(ban_middleware)
+
+    dp.update.outer_middleware(save_user_middleware)
+
+    antispam = AntiSpamMiddleware()
+    dp.message.outer_middleware(antispam)
+    dp.callback_query.outer_middleware(antispam)
+
     dp.include_router(handler_router)
+
     await bot.set_my_commands([
         BotCommand(command="my_commands", description="Мои команды"),
         BotCommand(command="help", description="Инструкция")
     ])
+
     await dp.start_polling(bot, storage=storage)
 
 

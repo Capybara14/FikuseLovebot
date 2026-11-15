@@ -13,7 +13,6 @@ callback_handler_router = Router()
 @callback_handler_router.callback_query(F.inline_message_id, F.data.startswith("btn_"))
 async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
     await call.answer()
-    storage.save_user(call.from_user)
     parts = call.data.split(" ")
 
     if parts[0] == "btn_accept":
@@ -62,7 +61,6 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
 @callback_handler_router.callback_query(F.message, F.data.startswith("btn_"))
 async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMContext, bot):
     await call.answer()
-    storage.save_user(call.from_user)
     parts = call.data.split(" ")
 
     if parts[0] == "btn_add_command":

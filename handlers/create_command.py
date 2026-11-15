@@ -79,7 +79,7 @@ async def enter_the_sticker(message: types.Message, bot: Bot, state: FSMContext)
 async def enter_text_inquery(message, state):
     await state.update_data(inquery=clean_md(message.text).lower())
     await message.reply(
-        text="*Введите текст совершённого действия*\n\n\\[Твой ник] *ТЕКСТ* \\[Ник того, кто принял]\n\n(_Пример: _`поцеловал(а)`)",
+        text="*Введите текст совершённого действия*\n\n\\[Твой ник]  *ТЕКСТ* \\[Ник того, кто принял]\n\n(_Пример: _`поцеловал(а)`)",
         parse_mode="Markdown"
     )
     await state.set_state(CreateCmd.response)
@@ -89,7 +89,7 @@ async def enter_text_inquery(message, state):
 async def enter_text_response(message, state):
     await state.update_data(response=clean_md(message.text).lower())
     await message.reply(
-        "*Введите текст отказа от действия*\n\n\\[Ник того, кто отказался] *ТЕКСТ*\n\n(_Пример: _`не хочет целоваться`)",
+        "*Введите текст отказа от действия*\n\n\\[Ник того, кто отказался]  *ТЕКСТ*\n\n(_Пример: _`не хочет целоваться`)",
         parse_mode="Markdown"
     )
     await state.set_state(CreateCmd.deny)

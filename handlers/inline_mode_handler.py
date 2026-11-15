@@ -12,9 +12,7 @@ async def inline_handler(query: types.InlineQuery, storage):
     user_input = clean_md(query.query.strip()).lower()
     user_id = str(query.from_user.id)
     user_first_name = clean_md(query.from_user.first_name)
-    user_name = clean_md(query.from_user.username)
-
-    storage.save_user(query.from_user)
+    user_name = clean_md(query.from_user.username).lower()
 
     # Убираем повторы пользовательских команд среди топовых команд
     user_commands = storage.commands_cache.get(user_id, [])
