@@ -1,0 +1,8 @@
+from aiogram import Router
+from . import inline_mode_handler, callback_handler, create_command, commands_handler
+
+handler_router = Router()
+handler_router.include_router(inline_mode_handler.inline_handler_router)
+handler_router.include_router(callback_handler.callback_handler_router)
+handler_router.include_router(create_command.create_command_router)
+handler_router.include_router(commands_handler.commands_router)
