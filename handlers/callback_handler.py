@@ -1,6 +1,9 @@
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
+import config
+from handlers.create_command import CreateCmd
+from keyboards.chat_mode_keyboards import back_keyboard
 from keyboards.inline_mode_keyboards import response_keyboard
 
 callback_handler_router = Router()
@@ -58,4 +61,71 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage):
 # 2. Кнопки из обычных сообщений в ЛС
 @callback_handler_router.callback_query(F.message, F.data.startswith("btn_"))
 async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMContext):
-    pass
+    await call.answer()
+    storage.save_user(call.from_user)
+    parts = call.data.split(" ")
+
+    if parts[0] == "btn_add_command":
+        if len(storage.commands_cache.get(str(call.from_user.id), [])) < config.LIMIT_OF_COMMANDS:
+            await call.bot.edit_message_text(text="*Введите название своей команды*\n\n(_Пример:_ `Поцелуй`)",
+                                             inline_message_id=call.inline_message_id,
+                                             chat_id=call.message.chat.id, message_id=call.message.message_id,
+
+                                             reply_markup=back_keyboard(call.message.message_id),
+                                             parse_mode="Markdown")
+            await state.set_state(CreateCmd.title)
+        else:
+            await call.bot.edit_message_text(text="☹️  *Вы достигли максимального числа команд*",
+                                             inline_message_id=call.inline_message_id, chat_id=call.message.chat.id,
+                                             reply_markup=back_keyboard(call.message.message_id), parse_mode="Markdown")
+
+    elif parts[0] == "btn_all_right":
+        successfully_create(call)
+
+    elif parts[0] == "btn_back":
+        bot.clear_step_handler_by_chat_id(call.message.chat.id)
+        bot_message = call.message.message_id
+        if len(parts) > 2:
+            cmd_id = parts[2]
+            author_cmd_id = cmd_id.split("_")[0]
+            cmd = find_cmd(cmd_id)
+            if not cmd: return
+            commands_cache[author_cmd_id].remove(cmd)
+        if len(parts) > 1:
+            bot_message = parts[1]
+        if commands_cache.get(str(call.from_user.id), None) is None or len(commands_cache[str(call.from_user.id)]) == 0:
+            text = "😶  *У вас ещё нет команд, выберите действие*"
+        else:
+            text = f"*Ваши команды:*\n\n"
+            for cmd_id in commands_cache[str(call.from_user.id)]:
+                text += f"   — {cmd_id["title"]} ([Детали](https://t.me/{BOT_USERNAME}?start={cmd_id["id"]}_{bot_message}))\n\n"
+            text += f" "
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=text, reply_markup=commands_keyboard(),
+            parse_mode="Markdown")
+
+    elif parts[0] == "btn_delete_command":
+        try:
+            cmd_id = parts[1]
+            author_cmd_id = cmd_id.split("_")[0]
+            cmd = find_cmd(cmd_id)
+            if not cmd: return
+            commands_cache[author_cmd_id].remove(cmd)
+            text = f"✅ *Команда успешно удалена*"
+        except:
+            text = "❌ Ошибка удаления команды"
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=text, reply_markup=back_keyboard(call.message.message_id),
+            parse_mode="Markdown")
+
+    elif parts[0] == "btn_refresh":
+        top_calculator(False, call.from_user.id)
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="*♻️  Команды успешно отсортированы*", reply_markup=back_keyboard(call.message.message_id),
+            parse_mode="Markdown")
