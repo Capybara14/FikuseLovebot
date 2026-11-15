@@ -1,4 +1,3 @@
-pyTelegramBotAPI
 python-dotenv
 Pillow
-requests
+aiogram
