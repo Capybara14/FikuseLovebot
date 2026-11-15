@@ -136,7 +136,7 @@ async def final_check(message, state, bot, storage):
 # Завершение
 async def successfully_create(call, bot):
     await bot.edit_message_text(
-        text="*Команда успешно сохранена!*.",
+        text="*Команда успешно сохранена!*",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         reply_markup=back_keyboard(call.message.message_id),
