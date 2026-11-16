@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 import config
 from handlers.create_command import CreateCmd
-from keyboards.chat_mode_keyboards import commands_keyboard, command_details_keyboard, back_keyboard
+from keyboards.chat_mode_keyboards import commands_keyboard, command_details_keyboard, back_cmd_menu_keyboard, settings_keyboard
 
 commands_router = Router()
 
@@ -42,22 +42,32 @@ async def start_worker(message: types.Message, storage, bot, state):
 # Меню команд
 @commands_router.message(Command("my_commands"))
 async def my_command_worker(message: types.Message, state: FSMContext, storage):
+    target_id = str(message.from_user.id)
+    if str(message.from_user.id) in config.ADMINS and len(message.text.split()) == 2:
+        target_id = message.text.split()[1]
     bot_message = await message.reply(text="_Загрузка команд..._", parse_mode="Markdown")
-    if storage.commands_cache.get(str(message.from_user.id), None) is None or len(
-            storage.commands_cache[str(message.from_user.id)]) == 0:
+    if storage.commands_cache.get(target_id, None) is None or len(
+            storage.commands_cache[target_id]) == 0:
         text = "😶  *У вас ещё нет команд, выберите действие*"
     else:
         text = f"*Ваши команды:*\n\n"
-        for cmd in storage.commands_cache[str(message.from_user.id)]:
+        for cmd in storage.commands_cache[target_id]:
             text += f"   — {cmd["title"]} ([Детали](https://t.me/{config.BOT_USERNAME}?start={cmd["id"]}_{bot_message.message_id}))\n\n"
         text += f" "
-    await bot_message.edit_text(text=text, parse_mode="Markdown", reply_markup=commands_keyboard())
+    await bot_message.edit_text(text=text, parse_mode="Markdown",
+                                reply_markup=commands_keyboard())
+
+
+@commands_router.message(Command("settings"))
+async def settings_worker(message, storage, state):
+    await message.reply(text=f"*⚙️ Настройки:*", reply_markup=settings_keyboard(str(message.from_user.id), storage),
+                        parse_mode="Markdown")
 
 
 @commands_router.message(Command("help"))
 async def help_worker(message):
     await message.reply(
-        text="*💚 Инструкция и советы:*\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • В списке команд всегда отображаются сначала твои, потом чужие, отсортированные по частоте использования\n\n*👾 Доступные команды:*\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд",
+        text="*💚 Инструкция и советы:*\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • Если в настройках указать свой пол, то сообщения бота будут меняться в соответствии с ним\n\n*👾 Доступные команды:*\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд",
         parse_mode="Markdown")
 
 
@@ -72,12 +82,12 @@ async def create_command(message: types.Message, storage, state: FSMContext, bot
         await bot.edit_message_text(text="*Введите название своей команды*\n\n(_Пример:_ `Поцелуй`)",
                                     chat_id=message.chat.id,
                                     message_id=bot_message.message_id,
-                                    reply_markup=back_keyboard(bot_message.message_id),
+                                    reply_markup=back_cmd_menu_keyboard(bot_message.message_id),
                                     parse_mode="Markdown")
         await state.set_state(CreateCmd.title)
     else:
         await message.reply(text="☹️  *Вы достигли максимального числа команд*",
-                            reply_markup=back_keyboard(message.message_id), parse_mode="Markdown")
+                            reply_markup=back_cmd_menu_keyboard(message.message_id), parse_mode="Markdown")
 
 
 @commands_router.message(Command("ban"))

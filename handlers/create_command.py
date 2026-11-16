@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
 from database.sticker import process_and_upload_sticker
-from keyboards.chat_mode_keyboards import final_step_keyboard, back_keyboard
+from keyboards.chat_mode_keyboards import final_step_keyboard, back_cmd_menu_keyboard
 from utils.text import clean_md
 
 create_command_router = Router()
@@ -139,6 +139,6 @@ async def successfully_create(call, bot):
         text="*Команда успешно сохранена!*",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        reply_markup=back_keyboard(call.message.message_id),
+        reply_markup=back_cmd_menu_keyboard(call.message.message_id),
         parse_mode="Markdown"
     )

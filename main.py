@@ -45,6 +45,7 @@ async def main():
 
     await bot.set_my_commands([
         BotCommand(command="my_commands", description="Мои команды"),
+        BotCommand(command="settings", description="Настройки"),
         BotCommand(command="help", description="Инструкция")
     ])
 

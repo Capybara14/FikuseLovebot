@@ -1,6 +1,7 @@
 from aiogram import Router, types, F
 from config import EMOJI_TEMPLATE
 from database.storage import Storage
+from utils.gender import gender_match_text
 from utils.text import clean_md
 from keyboards.inline_mode_keyboards import inquery_keyboard, response_keyboard
 
@@ -13,6 +14,7 @@ async def inline_handler(query: types.InlineQuery, storage):
     user_id = str(query.from_user.id)
     user_first_name = clean_md(query.from_user.first_name)
     user_name = clean_md(query.from_user.username).lower()
+    user_gender = storage.users_cache.get(user_id).get("gender")
 
     # Убираем повторы пользовательских команд среди топовых команд
     user_commands = storage.commands_cache.get(user_id, [])
@@ -46,7 +48,9 @@ async def inline_handler(query: types.InlineQuery, storage):
                         description=user_first_name + " " + cmd["text_response"] + " @username",
                         input_message_content=types.InputTextMessageContent(message_text=emoji +
                                                                                          f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
-                                                                                         cmd["text_inquery"],
+                                                                                         gender_match_text(
+                                                                                             cmd["text_inquery"],
+                                                                                             user_gender),
                                                                             parse_mode="Markdown",
                                                                             link_preview_options=types.LinkPreviewOptions(
                                                                                 is_disabled=True)
@@ -64,8 +68,9 @@ async def inline_handler(query: types.InlineQuery, storage):
                         description=user_first_name + " " + cmd["text_response"] + f" @{recipient_user_name}",
                         input_message_content=types.InputTextMessageContent(message_text=emoji +
                                                                                          f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
-                                                                                         cmd[
-                                                                                             "text_response"] + f" [{recipient_first_name}](https://t.me/{recipient_user_name})",
+                                                                                         gender_match_text(
+                                                                                             cmd["text_response"],
+                                                                                             user_gender) + f" [{recipient_first_name}](https://t.me/{recipient_user_name})",
                                                                             parse_mode="Markdown",
                                                                             link_preview_options=types.LinkPreviewOptions(
                                                                                 is_disabled=True)

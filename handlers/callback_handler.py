@@ -3,8 +3,9 @@ from aiogram.fsm.context import FSMContext
 
 import config
 from handlers.create_command import CreateCmd, successfully_create
-from keyboards.chat_mode_keyboards import back_keyboard, commands_keyboard
+from keyboards.chat_mode_keyboards import back_cmd_menu_keyboard, commands_keyboard, settings_keyboard
 from keyboards.inline_mode_keyboards import response_keyboard
+from utils.gender import gender_match_text
 
 callback_handler_router = Router()
 
@@ -21,14 +22,15 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
         author_msg_user_name = storage.users_cache[author_msg_user_id].get("user_name", None)
         author_msg_first_name = storage.users_cache[author_msg_user_id].get("user_first_name",
                                                                             None) or author_msg_user_name or author_msg_user_id
+        author_msg_gender = storage.users_cache[author_msg_user_id].get("gender")
         cmd = storage.find_cmd(cmd_id)
         if not cmd: return
         emoji = cmd["title"].split()[0] + " | "
         if str(call.from_user.id) != parts[2]:
             storage.increment_uses(cmd_id)
             text = emoji + f"[{author_msg_first_name}]({"https://t.me/" + author_msg_user_name if author_msg_user_name is not None else "tg://user?id=" + author_msg_user_id}) " + \
-                   cmd[
-                       "text_response"].lower() + f" [{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + str(call.from_user.id)})"
+                   gender_match_text(cmd[
+                       "text_response"].lower(), author_msg_gender) + f" [{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + str(call.from_user.id)})"
             await call.bot.edit_message_text(
                 text=text,
                 inline_message_id=call.inline_message_id,
@@ -41,13 +43,14 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
         cmd_id = parts[1]
         author_msg_user_id = parts[2]
         author_msg_user_name = storage.users_cache[author_msg_user_id].get("user_name", None)
+        user_gender = storage.users_cache[str(call.from_user.id)].get("gender")
         cmd = storage.find_cmd(cmd_id)
         if not cmd: return
         emoji = "❌ | "
         if str(call.from_user.id) != parts[2]:
             storage.increment_uses(cmd_id)
             text = emoji + f"[{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + str(call.from_user.id)}) " + \
-                   cmd["text_deny"]
+                   gender_match_text(cmd["text_deny"], user_gender)
             await call.bot.edit_message_text(
                 text=text,
                 inline_message_id=call.inline_message_id,
@@ -69,18 +72,18 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
                                              inline_message_id=call.inline_message_id,
                                              chat_id=call.message.chat.id, message_id=call.message.message_id,
 
-                                             reply_markup=back_keyboard(call.message.message_id),
+                                             reply_markup=back_cmd_menu_keyboard(call.message.message_id),
                                              parse_mode="Markdown")
             await state.set_state(CreateCmd.title)
         else:
             await call.bot.edit_message_text(text="☹️  *Вы достигли максимального числа команд*",
                                              inline_message_id=call.inline_message_id, chat_id=call.message.chat.id,
-                                             reply_markup=back_keyboard(call.message.message_id), parse_mode="Markdown")
+                                             reply_markup=back_cmd_menu_keyboard(call.message.message_id), parse_mode="Markdown")
 
     elif parts[0] == "btn_all_right":
         await successfully_create(call, bot)
 
-    elif parts[0] == "btn_back":
+    elif parts[0] == "btn_back_cmd_menu":
         await state.clear()
         bot_message_id = call.message.message_id
         if len(parts) > 2:
@@ -91,7 +94,8 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
             storage.commands_cache[author_cmd_id].remove(cmd)
         if len(parts) > 1:
             bot_message_id = parts[1]
-        if storage.commands_cache.get(str(call.from_user.id), None) is None or len(storage.commands_cache[str(call.from_user.id)]) == 0:
+        if storage.commands_cache.get(str(call.from_user.id), None) is None or len(
+                storage.commands_cache[str(call.from_user.id)]) == 0:
             text = "😶  *У вас ещё нет команд, выберите действие*"
         else:
             text = f"*Ваши команды:*\n\n"
@@ -118,5 +122,18 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
         await bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text=text, reply_markup=back_keyboard(call.message.message_id),
+            text=text, reply_markup=back_cmd_menu_keyboard(call.message.message_id),
             parse_mode="Markdown")
+
+    elif parts[0] == "btn_gender":
+        gender = parts[1]
+        if gender == "None":
+            gender = "Мужской"
+        elif gender == "Мужской":
+            gender = "Женский"
+        elif gender == "Женский":
+            gender = "Мужской"
+        storage.users_cache[str(call.from_user.id)]["gender"] = gender
+        await call.message.edit_reply_markup(
+            reply_markup=settings_keyboard(str(call.from_user.id), storage)
+        )
