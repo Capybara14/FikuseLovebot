@@ -43,6 +43,9 @@ class Storage:
                                         json.dumps(self.users_cache, ensure_ascii=False, indent=2))
                 await asyncio.to_thread(_write_file, self.commands_path,
                                         json.dumps(self.commands_cache, ensure_ascii=False, indent=2))
+                for i in self.users_cache.values():
+                    if i.get("user_name"):
+                        self.usernames_cache[i["user_name"]] = i["user_first_name"]
             except Exception as e:
                 print(f"Ошибка фонового сохранения: {e}")
             if once: break
