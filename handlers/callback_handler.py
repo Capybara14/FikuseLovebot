@@ -36,7 +36,7 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
                 f"{gender_match_text(cmd['text_response'], author_msg_gender)} "
                 f'<a href="{f"https://t.me/{call.from_user.username}" if call.from_user.username else f"tg://user?id={call.from_user.id}"}">'
                 f"{html.escape(call.from_user.first_name)}</a>"
-            ),
+            )
             await call.bot.edit_message_text(
                 text=text,
                 inline_message_id=call.inline_message_id,
@@ -59,7 +59,7 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
                 f'{emoji}<a href="{f"https://t.me/{call.from_user.username}" if call.from_user.username else f"tg://user?id={call.from_user.id}"}">'
                 f"{html.escape(call.from_user.first_name)}</a> "
                 f"{gender_match_text(cmd['text_deny'], user_gender)}"
-            ),
+            )
             await call.bot.edit_message_text(
                 text=text,
                 inline_message_id=call.inline_message_id,
