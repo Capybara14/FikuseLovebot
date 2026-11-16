@@ -33,7 +33,7 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
             text = (
                 f'{emoji}<a href="{f"https://t.me/{author_msg_user_name}" if author_msg_user_name else f"tg://user?id={author_msg_user_id}"}">'
                 f"{html.escape(author_msg_first_name)}</a> "
-                f"{gender_match_text(cmd['text_response'].lower(), author_msg_gender)} "
+                f"{gender_match_text(cmd['text_response'], author_msg_gender)} "
                 f'<a href="{f"https://t.me/{call.from_user.username}" if call.from_user.username else f"tg://user?id={call.from_user.id}"}">'
                 f"{html.escape(call.from_user.first_name)}</a>"
             ),
