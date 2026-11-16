@@ -45,7 +45,7 @@ async def inline_handler(query: types.InlineQuery, storage):
                     types.InlineQueryResultArticle(
                         id=cmd["id"],
                         title=cmd["title"],
-                        description=user_first_name + " " + cmd["text_response"] + " @username",
+                        description=user_first_name + " " + gender_match_text(cmd["text_response"], user_gender) + " @username",
                         input_message_content=types.InputTextMessageContent(message_text=emoji +
                                                                                          f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
                                                                                          gender_match_text(
@@ -65,7 +65,7 @@ async def inline_handler(query: types.InlineQuery, storage):
                     types.InlineQueryResultArticle(
                         id=cmd["id"],
                         title=cmd["title"],
-                        description=user_first_name + " " + cmd["text_response"] + f" @{recipient_user_name}",
+                        description=user_first_name + " " + gender_match_text(cmd["text_response"], user_gender) + f" @{recipient_user_name}",
                         input_message_content=types.InputTextMessageContent(message_text=emoji +
                                                                                          f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
                                                                                          gender_match_text(
