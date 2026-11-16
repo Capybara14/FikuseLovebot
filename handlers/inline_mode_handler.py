@@ -2,7 +2,6 @@ from aiogram import Router, types, F
 from config import EMOJI_TEMPLATE
 from database.storage import Storage
 from utils.gender import gender_match_text
-from utils.text import clean_md
 from keyboards.inline_mode_keyboards import inquery_keyboard, response_keyboard
 
 inline_handler_router = Router()
@@ -10,9 +9,9 @@ inline_handler_router = Router()
 
 @inline_handler_router.inline_query()
 async def inline_handler(query: types.InlineQuery, storage):
-    user_input = clean_md(query.query.strip()).lower()
+    user_input = query.query.strip().lower()
     user_id = str(query.from_user.id)
-    user_first_name = clean_md(query.from_user.first_name)
+    user_first_name = query.from_user.first_name
     user_name = query.from_user.username.lower()
     user_gender = storage.users_cache.get(user_id).get("gender")
 
@@ -51,7 +50,7 @@ async def inline_handler(query: types.InlineQuery, storage):
                                                                                          gender_match_text(
                                                                                              cmd["text_inquery"],
                                                                                              user_gender),
-                                                                            parse_mode="Markdown",
+                                                                            parse_mode="HTML",
                                                                             link_preview_options=types.LinkPreviewOptions(
                                                                                 is_disabled=True)
                                                                             ),
@@ -71,7 +70,7 @@ async def inline_handler(query: types.InlineQuery, storage):
                                                                                          gender_match_text(
                                                                                              cmd["text_response"],
                                                                                              user_gender) + f" [{recipient_first_name}](https://t.me/{recipient_user_name})",
-                                                                            parse_mode="Markdown",
+                                                                            parse_mode="HTML",
                                                                             link_preview_options=types.LinkPreviewOptions(
                                                                                 is_disabled=True)
                                                                             ),
