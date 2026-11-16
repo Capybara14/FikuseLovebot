@@ -1,3 +1,5 @@
+import html
+
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
@@ -28,14 +30,18 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
         emoji = cmd["title"].split()[0] + " | "
         if str(call.from_user.id) != parts[2]:
             storage.increment_uses(cmd_id)
-            text = emoji + f"[{author_msg_first_name}]({"https://t.me/" + author_msg_user_name if author_msg_user_name is not None else "tg://user?id=" + author_msg_user_id}) " + \
-                   gender_match_text(cmd[
-                       "text_response"].lower(), author_msg_gender) + f" [{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + str(call.from_user.id)})"
+            text = (
+                f'{emoji}<a href="{f"https://t.me/{author_msg_user_name}" if author_msg_user_name else f"tg://user?id={author_msg_user_id}"}">'
+                f"{html.escape(author_msg_first_name)}</a> "
+                f"{gender_match_text(cmd['text_response'].lower(), author_msg_gender)} "
+                f'<a href="{f"https://t.me/{call.from_user.username}" if call.from_user.username else f"tg://user?id={call.from_user.id}"}">'
+                f"{html.escape(call.from_user.first_name)}</a>"
+            ),
             await call.bot.edit_message_text(
                 text=text,
                 inline_message_id=call.inline_message_id,
                 reply_markup=response_keyboard(author_msg_user_name),
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 link_preview_options=types.LinkPreviewOptions(is_disabled=True),
             )
 
@@ -49,13 +55,16 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
         emoji = "❌ | "
         if str(call.from_user.id) != parts[2]:
             storage.increment_uses(cmd_id)
-            text = emoji + f"[{call.from_user.first_name}]({"https://t.me/" + call.from_user.username if call.from_user.username is not None else "tg://user?id=" + str(call.from_user.id)}) " + \
-                   gender_match_text(cmd["text_deny"], user_gender)
+            text = (
+                f'{emoji}<a href="{f"https://t.me/{call.from_user.username}" if call.from_user.username else f"tg://user?id={call.from_user.id}"}">'
+                f"{html.escape(call.from_user.first_name)}</a> "
+                f"{gender_match_text(cmd['text_deny'], user_gender)}"
+            ),
             await call.bot.edit_message_text(
                 text=text,
                 inline_message_id=call.inline_message_id,
                 reply_markup=response_keyboard(author_msg_user_name),
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 link_preview_options=types.LinkPreviewOptions(is_disabled=True),
             )
 
@@ -78,7 +87,8 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
         else:
             await call.bot.edit_message_text(text="☹️  *Вы достигли максимального числа команд*",
                                              inline_message_id=call.inline_message_id, chat_id=call.message.chat.id,
-                                             reply_markup=back_cmd_menu_keyboard(call.message.message_id), parse_mode="Markdown")
+                                             reply_markup=back_cmd_menu_keyboard(call.message.message_id),
+                                             parse_mode="Markdown")
 
     elif parts[0] == "btn_all_right":
         await successfully_create(call, bot)

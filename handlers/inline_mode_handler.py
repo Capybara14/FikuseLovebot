@@ -1,3 +1,5 @@
+import html
+
 from aiogram import Router, types, F
 from config import EMOJI_TEMPLATE
 from database.storage import Storage
@@ -44,16 +46,16 @@ async def inline_handler(query: types.InlineQuery, storage):
                     types.InlineQueryResultArticle(
                         id=cmd["id"],
                         title=cmd["title"],
-                        description=user_first_name + " " + gender_match_text(cmd["text_response"], user_gender) + " @username",
-                        input_message_content=types.InputTextMessageContent(message_text=emoji +
-                                                                                         f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
-                                                                                         gender_match_text(
-                                                                                             cmd["text_inquery"],
-                                                                                             user_gender),
-                                                                            parse_mode="HTML",
-                                                                            link_preview_options=types.LinkPreviewOptions(
-                                                                                is_disabled=True)
-                                                                            ),
+                        description=user_first_name + " " + gender_match_text(cmd["text_response"],
+                                                                              user_gender) + " @username",
+                        input_message_content=types.InputTextMessageContent(message_text=(
+                            f'{emoji}<a href="{f"https://t.me/{user_name}" if user_name else f"tg://user?id={user_id}"}">'
+                            f"{html.escape(user_first_name)}</a> "
+                            f"{gender_match_text(cmd['text_inquery'], user_gender)}"),
+                            parse_mode="HTML",
+                            link_preview_options=types.LinkPreviewOptions(
+                                is_disabled=True)
+                        ),
                         thumbnail_url=cmd.get("thumb_url") or EMOJI_TEMPLATE.format(code=f"{ord(emoji[0]):x}"),
                         reply_markup=inquery_keyboard(cmd["id"], user_id)
                     )
@@ -64,16 +66,18 @@ async def inline_handler(query: types.InlineQuery, storage):
                     types.InlineQueryResultArticle(
                         id=cmd["id"],
                         title=cmd["title"],
-                        description=user_first_name + " " + gender_match_text(cmd["text_response"], user_gender) + f" @{recipient_user_name}",
-                        input_message_content=types.InputTextMessageContent(message_text=emoji +
-                                                                                         f"[{user_first_name}]({"https://t.me/" + user_name if user_name is not None else "tg://user?id=" + user_id}) " +
-                                                                                         gender_match_text(
-                                                                                             cmd["text_response"],
-                                                                                             user_gender) + f" [{recipient_first_name}](https://t.me/{recipient_user_name})",
-                                                                            parse_mode="HTML",
-                                                                            link_preview_options=types.LinkPreviewOptions(
-                                                                                is_disabled=True)
-                                                                            ),
+                        description=user_first_name + " " + gender_match_text(cmd["text_response"],
+                                                                              user_gender) + f" @{recipient_user_name}",
+                        input_message_content=types.InputTextMessageContent(message_text=(
+                            f'{emoji}<a href="{f"https://t.me/{user_name}" if user_name else f"tg://user?id={user_id}"}">'
+                            f"{html.escape(user_first_name)}</a> "
+                            f"{gender_match_text(cmd['text_response'], user_gender)} "
+                            f'<a href="https://t.me/{recipient_user_name}">{html.escape(recipient_first_name)}</a>'
+                        ),
+                            parse_mode="HTML",
+                            link_preview_options=types.LinkPreviewOptions(
+                                is_disabled=True)
+                        ),
                         thumbnail_url=cmd.get("thumb_url") or EMOJI_TEMPLATE.format(code=f"{ord(emoji[0]):x}"),
                         reply_markup=response_keyboard(user_name)
                     )
