@@ -9,6 +9,11 @@ def gender_match_text(text: str, gender: str) -> str:
             new_text = text.replace("(её)", "")
         if gender == "Женский":
             new_text = text.replace("его(её)", "её")
+    if "(ее)" in text:
+        if gender == "Мужской":
+            new_text = text.replace("(ее)", "")
+        if gender == "Женский":
+            new_text = text.replace("его(ее)", "ее")
     if "(а)" in text:
         if gender == "Мужской":
             new_text = text.replace("(а)", "")
