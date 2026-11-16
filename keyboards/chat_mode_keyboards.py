@@ -19,7 +19,7 @@ def commands_keyboard():
 def settings_keyboard(user_id:str, storage):
     gender = storage.users_cache.get(user_id).get("gender")
     kb = [
-        [InlineKeyboardButton(text=f"Ваш пол: {gender if gender else "Не указан"}", callback_data=f"btn_gender {gender}")]
+        [InlineKeyboardButton(text=f"Пол: {gender if gender else "Нажми"}", callback_data=f"btn_gender {gender}")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
