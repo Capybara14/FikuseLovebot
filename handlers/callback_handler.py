@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 
 import config
 from handlers.create_command import CreateCmd, successfully_create
-from keyboards.chat_mode_keyboards import back_cmd_menu_keyboard, commands_keyboard, settings_keyboard
+from keyboards.pm_mode_keyboards import back_cmd_menu_keyboard, commands_keyboard, settings_keyboard
 from keyboards.inline_mode_keyboards import response_keyboard
 from utils.gender import gender_match_text
 

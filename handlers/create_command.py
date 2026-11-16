@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
 from database.sticker import process_and_upload_sticker
-from keyboards.chat_mode_keyboards import final_step_keyboard, back_cmd_menu_keyboard
+from keyboards.pm_mode_keyboards import final_step_keyboard, back_cmd_menu_keyboard
 from utils.text import clean_md
 
 create_command_router = Router()

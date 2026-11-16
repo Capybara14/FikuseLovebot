@@ -2,8 +2,6 @@ import time
 from collections import defaultdict, deque
 from aiogram import BaseMiddleware
 import config
-from database.storage import Storage
-from utils.text import clean_md
 
 
 class AntiSpamMiddleware(BaseMiddleware):
@@ -42,7 +40,7 @@ async def save_user_middleware(handler, event, data: dict):
         storage = data["storage"]
         user_id = str(user.id)
         user_name = user.username.lower() if user.username else None
-        user_first_name = clean_md(user.first_name)
+        user_first_name = user.first_name
 
         cached = storage.users_cache.get(user_id)
         if not cached or cached.get("user_name") != user_name or cached.get("user_first_name") != user_first_name:

@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 import config
 from handlers.create_command import CreateCmd
-from keyboards.chat_mode_keyboards import commands_keyboard, command_details_keyboard, back_cmd_menu_keyboard, settings_keyboard
+from keyboards.pm_mode_keyboards import commands_keyboard, command_details_keyboard, back_cmd_menu_keyboard, settings_keyboard
 
 commands_router = Router()
 
