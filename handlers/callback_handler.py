@@ -126,11 +126,13 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
     elif parts[0] == "btn_delete_chat_command":
         chat_id = parts[1]
         cmd_id = parts[2]
-        try:
-            storage.chats_cache[chat_id]["cmds"].remove(cmd_id)
-            text = f"✅ *Команда успешно удалена*"
-        except:
-            text = "❌ Ошибка удаления команды"
+        text = "❌ Ошибка удаления команды"
+        cmds = storage.chats_cache.get(chat_id, {}).get("cmds", {})
+        for trigger, value in cmds.items():
+            if value == cmd_id:
+                del cmds[trigger]
+                text = "✅ *Команда успешно удалена*"
+                break
         await bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
