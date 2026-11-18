@@ -12,11 +12,13 @@ def _write_file(path: str, data: str) -> None:
 
 
 class Storage:
-    def __init__(self, users_path: str, commands_path: str, timeout: int) -> None:
+    def __init__(self, users_path: str, commands_path: str, chats_path: str, timeout: int) -> None:
         self.users_path = users_path
         self.commands_path = commands_path
+        self.chats_path = chats_path
         self.timeout = timeout
 
+        self.chats_cache = {}
         self.commands_cache = {}
         self.users_cache = {}
         self.usernames_cache = {}
@@ -29,6 +31,9 @@ class Storage:
         if os.path.exists(self.users_path):
             with open(self.users_path, "r", encoding="utf-8") as f:
                 self.users_cache = json.load(f)
+        if os.path.exists(self.chats_path):
+            with open(self.chats_path, "r", encoding="utf-8") as f:
+                self.chats_cache = json.load(f)
         for i in self.users_cache.values():
             if i.get("user_name"):
                 self.usernames_cache[i["user_name"]] = i["user_first_name"]
@@ -43,13 +48,14 @@ class Storage:
                                         json.dumps(self.users_cache, ensure_ascii=False, indent=2))
                 await asyncio.to_thread(_write_file, self.commands_path,
                                         json.dumps(self.commands_cache, ensure_ascii=False, indent=2))
+                await asyncio.to_thread(_write_file, self.chats_path,
+                                        json.dumps(self.chats_cache, ensure_ascii=False, indent=2))
                 for i in self.users_cache.values():
                     if i.get("user_name"):
                         self.usernames_cache[i["user_name"]] = i["user_first_name"]
             except Exception as e:
                 print(f"Ошибка фонового сохранения: {e}")
             if once: break
-
 
     # Добавляет единичку к использованию команды
     def increment_uses(self, cmd_id: str):
@@ -82,7 +88,7 @@ class Storage:
             self.commands_cache[user_id] = sorted(self.commands_cache[user_id], key=lambda x: int(x["uses_count"]),
                                                   reverse=True)
 
-    #Банит пользователя и удаляет все его команды
+    # Банит пользователя и удаляет все его команды
     def set_ban(self, user_id: str, status: bool):
         if status and user_id in config.ADMINS:
             return

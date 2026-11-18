@@ -6,6 +6,7 @@ from aiogram.types import BotCommand
 from handlers import handler_router
 from database.storage import Storage
 import config
+from utils.cmd_bar import set_bot_commands
 from utils.global_middleware import ban_middleware, save_user_middleware
 from utils.global_middleware import AntiSpamMiddleware
 
@@ -30,7 +31,7 @@ async def on_shutdown(storage: Storage):
 async def main():
     bot = Bot(token=config.BOT_TOKEN)
 
-    storage = Storage(config.FILE_USERS_PATH, config.FILE_COMMANDS_PATH, config.TIMEOUT)
+    storage = Storage(config.FILE_USERS_PATH, config.FILE_COMMANDS_PATH, config.FILE_CHATS_PATH, config.TIMEOUT)
     storage.load_cache()
 
     dp.update.outer_middleware(ban_middleware)
@@ -43,13 +44,9 @@ async def main():
 
     dp.include_router(handler_router)
 
-    await bot.set_my_commands([
-        BotCommand(command="my_commands", description="Мои команды"),
-        BotCommand(command="settings", description="Настройки"),
-        BotCommand(command="help", description="Инструкция")
-    ])
+    await set_bot_commands(bot)
 
-    await dp.start_polling(bot, storage=storage)
+    await dp.start_polling(bot, storage=storage, allowed_updates=dp.resolve_used_update_types())
 
 
 if __name__ == "__main__":

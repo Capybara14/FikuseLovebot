@@ -5,9 +5,13 @@ from aiogram.fsm.context import FSMContext
 
 import config
 from handlers.create_command import CreateCmd, successfully_create
-from keyboards.pm_mode_keyboards import back_cmd_menu_keyboard, commands_keyboard, settings_keyboard
+from handlers.pm_commands_handler import create_command
+from keyboards.pm_mode_keyboards import back_cmd_menu_keyboard, commands_keyboard, choose_chat_keyboard, \
+    chat_commands_keyboard, back_chat_menu_keyboard
 from keyboards.inline_mode_keyboards import response_keyboard
 from utils.gender import gender_match_text
+from utils.menus import chat_menu, cmd_menu
+from utils.text import html_link_to_user
 
 callback_handler_router = Router()
 
@@ -15,9 +19,7 @@ callback_handler_router = Router()
 # 1. Кнопки из инлайн-сообщений (в любом чате)
 @callback_handler_router.callback_query(F.inline_message_id, F.data.startswith("btn_"))
 async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
-    await call.answer()
     parts = call.data.split(" ")
-
     if parts[0] == "btn_accept":
         cmd_id = parts[1]
         author_msg_user_id = parts[2]
@@ -31,10 +33,10 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
         if str(call.from_user.id) != parts[2]:
             storage.increment_uses(cmd_id)
             text = (
-                f'{emoji}<a href="{f"https://t.me/{author_msg_user_name}" if author_msg_user_name else f"tg://user?id={author_msg_user_id}"}">'
+                f'{emoji}{html_link_to_user(author_msg_user_id, author_msg_user_name)}'
                 f"{html.escape(author_msg_first_name)}</a> "
                 f"{gender_match_text(cmd['text_response'], author_msg_gender)} "
-                f'<a href="{f"https://t.me/{call.from_user.username}" if call.from_user.username else f"tg://user?id={call.from_user.id}"}">'
+                f'{html_link_to_user(call.from_user.id, call.from_user.username)}'
                 f"{html.escape(call.from_user.first_name)}</a>"
             )
             await call.bot.edit_message_text(
@@ -56,7 +58,7 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
         if str(call.from_user.id) != parts[2]:
             storage.increment_uses(cmd_id)
             text = (
-                f'{emoji}<a href="{f"https://t.me/{call.from_user.username}" if call.from_user.username else f"tg://user?id={call.from_user.id}"}">'
+                f'{emoji}{html_link_to_user(call.from_user.id, call.from_user.username)}'
                 f"{html.escape(call.from_user.first_name)}</a> "
                 f"{gender_match_text(cmd['text_deny'], user_gender)}"
             )
@@ -72,23 +74,9 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
 # 2. Кнопки из обычных сообщений в ЛС
 @callback_handler_router.callback_query(F.message, F.data.startswith("btn_"))
 async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMContext, bot):
-    await call.answer()
     parts = call.data.split(" ")
-
     if parts[0] == "btn_add_command":
-        if len(storage.commands_cache.get(str(call.from_user.id), [])) < config.LIMIT_OF_COMMANDS:
-            await call.bot.edit_message_text(text="*Введите название своей команды*\n\n(_Пример:_ `Поцелуй`)",
-                                             inline_message_id=call.inline_message_id,
-                                             chat_id=call.message.chat.id, message_id=call.message.message_id,
-
-                                             reply_markup=back_cmd_menu_keyboard(call.message.message_id),
-                                             parse_mode="Markdown")
-            await state.set_state(CreateCmd.title)
-        else:
-            await call.bot.edit_message_text(text="☹️  *Вы достигли максимального числа команд*",
-                                             inline_message_id=call.inline_message_id, chat_id=call.message.chat.id,
-                                             reply_markup=back_cmd_menu_keyboard(call.message.message_id),
-                                             parse_mode="Markdown")
+        await create_command(message=call.message, storage=storage, state=state, bot=bot)
 
     elif parts[0] == "btn_all_right":
         await successfully_create(call, bot)
@@ -104,20 +92,7 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
             storage.commands_cache[author_cmd_id].remove(cmd)
         if len(parts) > 1:
             bot_message_id = parts[1]
-        if storage.commands_cache.get(str(call.from_user.id), None) is None or len(
-                storage.commands_cache[str(call.from_user.id)]) == 0:
-            text = "😶  *У вас ещё нет команд, выберите действие*"
-        else:
-            text = f"*Ваши команды:*\n\n"
-            for cmd in storage.commands_cache[str(call.from_user.id)]:
-                text += f"   — {cmd["title"]} ([Детали](https://t.me/{config.BOT_USERNAME}?start={cmd["id"]}_{bot_message_id}))\n\n"
-            text += f" "
-        await bot.edit_message_text(
-            text=text,
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            reply_markup=commands_keyboard(),
-            parse_mode="Markdown")
+        await cmd_menu(bot_message_id, call.message, bot, storage)
 
     elif parts[0] == "btn_delete_command":
         try:
@@ -145,5 +120,45 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
             gender = "Мужской"
         storage.users_cache[str(call.from_user.id)]["gender"] = gender
         await call.message.edit_reply_markup(
-            reply_markup=settings_keyboard(str(call.from_user.id), storage)
+            reply_markup=commands_keyboard(str(call.from_user.id), storage)
         )
+
+    elif parts[0] == "btn_delete_chat_command":
+        chat_id = parts[1]
+        cmd_id = parts[2]
+        try:
+            storage.chats_cache[chat_id]["cmds"].remove(cmd_id)
+            text = f"✅ *Команда успешно удалена*"
+        except:
+            text = "❌ Ошибка удаления команды"
+        await bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=text, reply_markup=back_chat_menu_keyboard(call.message.message_id, chat_id),
+            parse_mode="Markdown")
+
+    elif parts[0] == "btn_chat_cmd_choose":
+        chat_id = parts[1]
+        bot_message_id = parts[2]
+        chat = await bot.get_chat(chat_id)
+        title = chat.title or f"{chat_id}"
+        await chat_menu(bot_message_id, chat_id, title, storage, call.message, bot)
+
+    elif parts[0] == "btn_back_to_chat_choose":
+        bot_message_id = parts[1]
+        chats = storage.users_cache[str(call.from_user.id)].get("chats")
+        if chats:
+            await bot.edit_message_text("*Выберите чат для настройки: *", chat_id=call.message.chat.id,
+                                        message_id=bot_message_id,
+                                        parse_mode="Markdown",
+                                        reply_markup=await choose_chat_keyboard(chats, bot_message_id, bot,
+                                                                                storage))
+        else:
+            await bot.edit_message_text("❗ Вы не являетесь админом ни одного из чатов, где есть бот",
+                                        chat_id=call.message.chat.id,
+                                        message_id=bot_message_id, parse_mode="Markdown")
+    await call.answer()
+
+
+
+

@@ -5,7 +5,7 @@ import config
 
 
 class AntiSpamMiddleware(BaseMiddleware):
-    def __init__(self, limit: int = 30, window: int = 60):
+    def __init__(self, limit: int = 20, window: int = 60):
         self.limit = limit
         self.window = window
         self.history: dict[int, deque[float]] = defaultdict(deque)
