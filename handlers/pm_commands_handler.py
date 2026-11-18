@@ -1,12 +1,12 @@
 from aiogram import Router, types, F
 from aiogram.enums import ChatType
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 import config
 from handlers.create_command import CreateCmd
-from keyboards.pm_mode_keyboards import commands_keyboard, command_details_keyboard, back_cmd_menu_keyboard, \
-    choose_chat_keyboard, chat_command_details_keyboard
+from keyboards.pm_mode_keyboards import command_details_keyboard, back_cmd_menu_keyboard, \
+    choose_chat_keyboard, chat_command_details_keyboard, big_keyboard
 from utils.menus import cmd_menu
 
 pm_commands_router = Router()
@@ -16,10 +16,11 @@ pm_commands_router.message.filter(F.chat.type == ChatType.PRIVATE)
 @pm_commands_router.message(Command("start"))
 async def start_worker(message: types.Message, storage, bot, state):
     parts = message.text.split()
+
     if len(parts) == 1:
-        await message.reply(
+        await message.answer(
             text=f'👋 *Привет! Это бот для RP команд.*\n\nПросто введи `@{config.BOT_USERNAME}` и выбирай команду!\n\nЕсли что-то не понятно, используй /help',
-            parse_mode="Markdown")
+            parse_mode="Markdown", reply_markup=big_keyboard())
     elif parts[1] == "create_command":
         await create_command(message, storage, state, bot)
     elif parts[1].split("_")[0] == "chatcmd":
@@ -66,25 +67,27 @@ async def start_worker(message: types.Message, storage, bot, state):
 
 
 # Меню команд
+@pm_commands_router.message(F.text == "📋 Мои команды")
 @pm_commands_router.message(Command("my_commands"))
 async def my_command_worker(message: types.Message, state: FSMContext, storage, bot):
     if str(message.from_user.id) in config.ADMINS and len(message.text.split()) == 2:
         target_id = message.text.split()[1]
-        bot_message = await message.reply(text="_Загрузка команд..._", parse_mode="Markdown")
+        bot_message = await message.answer(text="_Загрузка команд..._", parse_mode="Markdown")
         await cmd_menu(bot_message.message_id, message, bot, storage, target_id)
         return
-    bot_message = await message.reply(text="_Загрузка команд..._", parse_mode="Markdown")
+    bot_message = await message.answer(text="_Загрузка команд..._", parse_mode="Markdown")
     await cmd_menu(bot_message.message_id, message, bot, storage)
 
 
-
+@pm_commands_router.message(F.text == "💚 Помощь")
 @pm_commands_router.message(Command("help"))
 async def help_worker(message):
-    await message.reply(
+    await message.answer(
         text="*💚 Инструкция и советы:*\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • Если при создании команды использовать скобки с вариантом для женского пола, например: поцеловался(лась) или его(её), то для людей с указанным в настройках полом, сообщение будет меняться в соответствии с ним    • Доступ к изменению команд чата имеют все админы чата\n\n*👾 Доступные команды:*\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд\n    /my\\_chats — просмотр и настройка твоих чатов",
         parse_mode="Markdown")
 
 
+@pm_commands_router.message(F.text == "➕ Создать команду")
 @pm_commands_router.message(Command("new_command"))
 async def create_command_worker(message, storage, state, bot):
     await create_command(message, storage, state, bot)
@@ -92,16 +95,17 @@ async def create_command_worker(message, storage, state, bot):
 
 async def create_command(message: types.Message, storage, state: FSMContext, bot):
     if len(storage.commands_cache.get(str(message.from_user.id), [])) < config.LIMIT_OF_COMMANDS:
-        bot_message = await message.reply(text="_Загрузка..._", parse_mode="Markdown")
-        await bot.edit_message_text(text="*Введите название своей команды*\n\n(_Будет использоваться как триггер в чатах. Пример:_ `Поцеловать`)",
-                                    chat_id=message.chat.id,
-                                    message_id=bot_message.message_id,
-                                    reply_markup=back_cmd_menu_keyboard(bot_message.message_id),
-                                    parse_mode="Markdown")
+        bot_message = await message.answer(text="_Загрузка..._", parse_mode="Markdown")
+        await bot.edit_message_text(
+            text="*Введите название своей команды*\n\n(_Будет использоваться как триггер в чатах. Пример:_ `Поцеловать`)",
+            chat_id=message.chat.id,
+            message_id=bot_message.message_id,
+            reply_markup=back_cmd_menu_keyboard(bot_message.message_id),
+            parse_mode="Markdown")
         await state.set_state(CreateCmd.title)
     else:
-        await message.reply(text="❗ *Вы достигли максимального числа команд*",
-                            reply_markup=back_cmd_menu_keyboard(message.message_id), parse_mode="Markdown")
+        await message.answer(text="❗ *Вы достигли максимального числа команд*",
+                             reply_markup=back_cmd_menu_keyboard(message.message_id), parse_mode="Markdown")
 
 
 @pm_commands_router.message(Command("ban"))
@@ -109,7 +113,7 @@ async def ban_worker(message, storage):
     if str(message.from_user.id) in config.ADMINS:
         user_id = message.text.split(" ", 1)[1]
         storage.set_ban(user_id, True)
-        await message.reply(
+        await message.answer(
             text=f"*Пользователь {user_id} забанен*\nОн не сможет использовать бота ни в каком виде, а все его команды удалены.",
             parse_mode="Markdown")
 
@@ -119,14 +123,15 @@ async def unban_worker(message, storage):
     if str(message.from_user.id) in config.ADMINS:
         user_id = message.text.split(" ", 1)[1]
         storage.set_ban(user_id, False)
-        await message.reply(text=f"*Пользователь {user_id} разбанен*", parse_mode="Markdown")
+        await message.answer(text=f"*Пользователь {user_id} разбанен*", parse_mode="Markdown")
 
 
+@pm_commands_router.message(F.text == "💬 Мои чаты")
 @pm_commands_router.message(Command("my_chats"))
 async def my_chats_worker(message, storage, bot):
     chats = storage.users_cache[str(message.from_user.id)].get("chats")
-    bot_message = await message.reply("_Загрузка..._", parse_mode="Markdown")
-    if chats:
+    bot_message = await message.answer("_Загрузка..._", parse_mode="Markdown")
+    if chats is not None and len(chats) > 0:
         await bot.edit_message_text("*Выберите чат для настройки:* ", chat_id=message.chat.id,
                                     message_id=bot_message.message_id,
                                     parse_mode="Markdown",

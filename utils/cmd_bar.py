@@ -7,7 +7,7 @@ async def set_bot_commands(bot):
         BotCommand(command="help", description="Инструкция")],
         scope=BotCommandScopeAllPrivateChats()
     )
-    await bot.set_my_commands(
-        [BotCommand(command="refresh", description="Обновить список админов")],
-        scope=BotCommandScopeAllGroupChats()
-    )
+    # await bot.set_my_commands(
+    #     [BotCommand(command="refresh", description="Обновить список админов")],
+    #     scope=BotCommandScopeAllGroupChats()
+    # )

@@ -25,7 +25,7 @@ class CreateCmd(StatesGroup):
 @create_command_router.message(CreateCmd.title, F.text)
 async def enter_the_name(message: types.Message, state: FSMContext):
     await state.update_data(title=clean_md(message.text).capitalize())
-    await message.reply(
+    await message.answer(
         text="*Введите эмодзи для команды*\n\n(_Будет располагаться рядом с названием_)",
         parse_mode="Markdown"
     )
@@ -35,7 +35,7 @@ async def enter_the_name(message: types.Message, state: FSMContext):
 @create_command_router.message(CreateCmd.emoji, F.text)
 async def enter_the_emoji(message: types.Message, state: FSMContext):
     await state.update_data(title=clean_md(message.text) + " " + await state.get_value("title"))
-    await message.reply(text="*Отправьте стикер для иконки команды*\n\n(_Напишите /skip для пропуска_)",
+    await message.answer(text="*Отправьте стикер для иконки команды*\n\n(_Напишите /skip для пропуска_)",
                         parse_mode="Markdown")
     await state.set_state(CreateCmd.thumb_url)
 
@@ -43,7 +43,7 @@ async def enter_the_emoji(message: types.Message, state: FSMContext):
 @create_command_router.message(CreateCmd.thumb_url, Command("skip"))
 async def skip_sticker(message: types.Message, state: FSMContext):
     await state.update_data(thumb_url=None)
-    await message.reply(
+    await message.answer(
         text="*Введите текст запроса на действие*\n\n\\[Твой ник]  *ТЕКСТ*\n\n(_Пример: _`хочет поцеловать`)",
         parse_mode="Markdown")
     await state.set_state(CreateCmd.inquery)
@@ -68,7 +68,7 @@ async def enter_the_sticker(message: types.Message, bot: Bot, state: FSMContext)
             print(e)
 
     await state.update_data(thumb_url=thumb_url)
-    await message.reply(
+    await message.answer(
         text="*Введите текст запроса на действие*\n\n\\[Твой ник]  *ТЕКСТ*\n\n(_Пример: _`хочет поцеловать`)",
         parse_mode="Markdown"
     )
@@ -78,7 +78,7 @@ async def enter_the_sticker(message: types.Message, bot: Bot, state: FSMContext)
 @create_command_router.message(CreateCmd.inquery, F.text)
 async def enter_text_inquery(message, state):
     await state.update_data(inquery=clean_md(message.text).lower())
-    await message.reply(
+    await message.answer(
         text="*Введите текст совершённого действия*\n\n\\[Твой ник]  *ТЕКСТ*  \\[Ник того, кто принял]\n\n(_Пример: _`поцеловал(а)`)",
         parse_mode="Markdown"
     )
@@ -88,7 +88,7 @@ async def enter_text_inquery(message, state):
 @create_command_router.message(CreateCmd.response, F.text)
 async def enter_text_response(message, state):
     await state.update_data(response=clean_md(message.text).lower())
-    await message.reply(
+    await message.answer(
         "*Введите текст отказа от действия*\n\n\\[Ник того, кто отказался]  *ТЕКСТ*\n\n(_Пример: _`не хочет целоваться`)",
         parse_mode="Markdown"
     )
@@ -117,7 +117,7 @@ async def final_check(message, state, bot, storage):
         commands_max_num = max([int(i["id"].split("_")[1]) for i in storage.commands_cache[user_id]]) + 1
     storage.commands_cache[user_id].append(new_command | {"id": f"{user_id}_{commands_max_num}"})
 
-    bot_message = await message.reply(text="_Сохранение данных..._", parse_mode="Markdown")
+    bot_message = await message.answer(text="_Сохранение данных..._", parse_mode="Markdown")
     await bot.edit_message_text(
         text=f"*Проверьте правильность ввода:*\n\n"
              f"   • _Название:_ {new_command['title']}\n"

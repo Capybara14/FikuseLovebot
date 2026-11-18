@@ -83,7 +83,7 @@ async def refresh_worker(message, storage, bot):
 
     admins = await bot.get_chat_administrators(message.chat.id)
     await update_admins(admins, str(message.chat.id), bot, storage)
-    msg = await message.reply("*Список админов обновлен*", parse_mode="Markdown")
+    msg = await message.answer("*Список админов обновлен*", parse_mode="Markdown")
     await asyncio.sleep(config.SERVICE_MESSAGES_TIMEOUT)
     await msg.delete()
     await message.delete()
@@ -91,7 +91,7 @@ async def refresh_worker(message, storage, bot):
 
 @chat_mode_router.message(F.chat.type.in_({"group", "supergroup"}), F.text)
 async def rp_handler(message: types.Message, storage):
-    reply = message.reply_to_message
+    reply = message.answer_to_message
     if not reply:
         return
 

@@ -9,7 +9,7 @@ async def cmd_menu(bot_message_id, message, bot, storage, target_id=None):
             storage.commands_cache[target_id]) == 0:
         text = "❗ *У вас ещё нет команд, выберите действие*"
     else:
-        text = f"*Ваши команды:*\n\n"
+        text = f"*📋 Ваши команды:*\n\n"
         for cmd in storage.commands_cache[target_id]:
             text += f"   — {cmd["title"]} ([Детали](https://t.me/{config.BOT_USERNAME}?start=mycmd_{cmd["id"]}_{bot_message_id}))\n\n"
         text += f" "

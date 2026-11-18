@@ -147,7 +147,7 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
     elif parts[0] == "btn_back_to_chat_choose":
         bot_message_id = parts[1]
         chats = storage.users_cache[str(call.from_user.id)].get("chats")
-        if chats:
+        if chats is not None and len(chats) > 0:
             await bot.edit_message_text("*Выберите чат для настройки: *", chat_id=call.message.chat.id,
                                         message_id=bot_message_id,
                                         parse_mode="Markdown",

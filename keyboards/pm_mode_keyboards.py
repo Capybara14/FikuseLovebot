@@ -1,7 +1,8 @@
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 
 import config
+
 
 # Клавиатура меню команд
 def commands_keyboard(user_id: str, storage):
@@ -44,7 +45,8 @@ async def choose_chat_keyboard(chats: set, bot_message_id, bot, storage):
                 chat = await bot.get_chat(chat_id)
                 title = chat.title or f"Чат {chat_id}"
                 kb.append(
-                    [InlineKeyboardButton(text=f"{title}", callback_data=f"btn_chat_cmd_choose {chat_id} {bot_message_id}")])
+                    [InlineKeyboardButton(text=f"{title}",
+                                          callback_data=f"btn_chat_cmd_choose {chat_id} {bot_message_id}")])
         except (TelegramForbiddenError, TelegramBadRequest):
             pass
     return InlineKeyboardMarkup(inline_keyboard=kb)
@@ -66,6 +68,20 @@ def chat_commands_keyboard(bot_message_id, chat_id):
     ]
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
+
 def back_chat_menu_keyboard(bot_message_id, chat_id):
     kb = [[InlineKeyboardButton(text="⤴️ Вернуться", callback_data=f"btn_chat_cmd_choose {chat_id} {bot_message_id}")]]
     return InlineKeyboardMarkup(inline_keyboard=kb)
+
+
+def big_keyboard():
+    kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="➕ Создать команду", style="primary"),
+             KeyboardButton(text="📋 Мои команды", style="primary")],
+            [KeyboardButton(text="💬 Мои чаты", style="primary"),
+             KeyboardButton(text="💚 Помощь", style="primary")],
+        ],
+        resize_keyboard=True,
+    )
+    return kb
