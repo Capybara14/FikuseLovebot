@@ -89,19 +89,65 @@ async def refresh_worker(message, storage, bot):
     await message.delete()
 
 
+def _find_command(text: str, cmds: dict[str, str]) -> tuple[str, str] | None:
+    lower_text = text.lower()
+    for trigger in sorted(cmds, key=len, reverse=True):
+        trigger_lower = trigger.lower()
+        if lower_text == trigger_lower:
+            return cmds[trigger], ""
+        if lower_text.startswith(trigger_lower) and lower_text[len(trigger_lower)].isspace():
+            return cmds[trigger], text[len(trigger_lower):].strip()
+    return None
+
+
 @chat_mode_router.message(F.chat.type.in_({"group", "supergroup"}), F.text)
 async def rp_handler(message: types.Message, storage):
-    reply = message.reply_to_message
-    if not reply:
-        return
-
-    word = message.text.split(maxsplit=1)[0].strip().lower()
     cmds = storage.chats_cache.get(str(message.chat.id), {}).get("cmds", {})
-    if word not in cmds:
+    matched = _find_command(message.text.strip(), cmds)
+    if not matched:
         return
 
-    cmd_id = cmds[word]
+    cmd_id, remainder = matched
     cmd = storage.find_cmd(cmd_id)
+    if not cmd:
+        return
+
+    target = None
+    if remainder.startswith("@"):
+        token = remainder.split(maxsplit=1)[0]
+        if len(token) > 1:
+            username = token[1:]
+            username_lower = username.lower()
+            target = (
+                html_link_to_user(None, username_lower),
+                storage.usernames_cache.get(username_lower) or username,
+            )
+    elif remainder and message.entities:
+        for entity in message.entities:
+            if entity.type == "text_mention" and entity.user and remainder.startswith(entity.extract_from(message.text)):
+                target = (
+                    html_link_to_user(entity.user.id, entity.user.username),
+                    entity.user.first_name,
+                )
+                break
+
+    if not target:
+        reply = message.reply_to_message
+        if not reply:
+            return
+        if reply.sender_chat:
+            target = (
+                html_link_to_user(reply.sender_chat.id, reply.sender_chat.username, True),
+                reply.sender_chat.title,
+            )
+        else:
+            target = (
+                html_link_to_user(reply.from_user.id, reply.from_user.username),
+                reply.from_user.first_name,
+            )
+
+    link_target, target_first_name = target
+
     storage.increment_uses(cmd_id)
 
     if message.sender_chat:
@@ -115,18 +161,7 @@ async def rp_handler(message: types.Message, storage):
         author_first_name = message.from_user.first_name
         link_author = html_link_to_user(author_id, author_username)
 
-    if reply.sender_chat:
-        target_id = reply.sender_chat.id
-        target_username = reply.sender_chat.username
-        target_first_name = reply.sender_chat.title
-        link_target = html_link_to_user(target_id, target_username, True)
-    else:
-        target_id = reply.from_user.id
-        target_username = reply.from_user.username
-        target_first_name = reply.from_user.first_name
-        link_target = html_link_to_user(target_id, target_username)
-
-    gender = storage.users_cache.get(author_id, {}).get("gender")
+    gender = storage.users_cache.get(str(author_id), {}).get("gender")
     text = (
         f'{cmd["title"].split()[0]} | '
         f"{link_author}{html.escape(author_first_name)}</a> "

@@ -46,7 +46,12 @@ async def save_user_middleware(handler, event, data: dict):
         if not cached or cached.get("user_name") != user_name or cached.get("user_first_name") != user_first_name:
             if not cached:
                 storage.users_cache[user_id] = {}
+            old_user_name = cached.get("user_name") if cached else None
+            if old_user_name and old_user_name != user_name:
+                storage.usernames_cache.pop(old_user_name, None)
             storage.users_cache[user_id]["user_name"] = user_name
             storage.users_cache[user_id]["user_first_name"] = user_first_name
+            if user_name:
+                storage.usernames_cache[user_name] = user_first_name
 
     return await handler(event, data)
