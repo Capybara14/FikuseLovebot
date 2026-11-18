@@ -91,7 +91,7 @@ async def refresh_worker(message, storage, bot):
 
 @chat_mode_router.message(F.chat.type.in_({"group", "supergroup"}), F.text)
 async def rp_handler(message: types.Message, storage):
-    reply = message.answer_to_message
+    reply = message.reply_to_message
     if not reply:
         return
 
