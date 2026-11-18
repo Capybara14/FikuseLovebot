@@ -21,6 +21,9 @@ async def start_worker(message: types.Message, storage, bot, state):
         await message.answer(
             text=f'👋 *Привет! Это бот для RP команд.*\n\nПросто введи `@{config.BOT_USERNAME}` и выбирай команду!\n\nЕсли что-то не понятно, используй /help',
             parse_mode="Markdown", reply_markup=big_keyboard())
+        await message.answer(
+            text="<a>Имя</a>",
+            parse_mode="HTML", reply_markup=big_keyboard())
     elif parts[1] == "create_command":
         await create_command(message, storage, state, bot)
     elif parts[1].split("_")[0] == "chatcmd":
