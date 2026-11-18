@@ -75,7 +75,7 @@ async def inline_handler(query: types.InlineQuery, storage):
                         input_message_content=types.InputTextMessageContent(message_text=(
                             f'{emoji}{html_link_to_user(user_id, user_name)}'
                             f"{html.escape(user_first_name)}</a> "
-                            f"{gender_match_text(cmd['text_inquery'], user_gender)}"),
+                            f"хочет {html.escape(cmd['title'].split(maxsplit=1)[-1].lower())}"),
                             parse_mode="HTML",
                             link_preview_options=types.LinkPreviewOptions(
                                 is_disabled=True)

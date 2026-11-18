@@ -17,7 +17,6 @@ class CreateCmd(StatesGroup):
     title = State()
     emoji = State()
     thumb_url = State()
-    inquery = State()
     response = State()
     deny = State()
 
@@ -44,9 +43,9 @@ async def enter_the_emoji(message: types.Message, state: FSMContext):
 async def skip_sticker(message: types.Message, state: FSMContext):
     await state.update_data(thumb_url=None)
     await message.answer(
-        text="*Введите текст запроса на действие*\n\n\\[Твой ник]  *ТЕКСТ*\n\n(_Пример: _`хочет поцеловать`)",
+        text="*Введите текст совершённого действия*\n\n\\[Твой ник]  *ТЕКСТ*  \\[Ник того, кто принял]\n\n(_Пример: _`поцеловал(а)`)",
         parse_mode="Markdown")
-    await state.set_state(CreateCmd.inquery)
+    await state.set_state(CreateCmd.response)
 
 
 @create_command_router.message(CreateCmd.thumb_url, F.sticker)
@@ -68,16 +67,6 @@ async def enter_the_sticker(message: types.Message, bot: Bot, state: FSMContext)
             print(e)
 
     await state.update_data(thumb_url=thumb_url)
-    await message.answer(
-        text="*Введите текст запроса на действие*\n\n\\[Твой ник]  *ТЕКСТ*\n\n(_Пример: _`хочет поцеловать`)",
-        parse_mode="Markdown"
-    )
-    await state.set_state(CreateCmd.inquery)
-
-
-@create_command_router.message(CreateCmd.inquery, F.text)
-async def enter_text_inquery(message, state):
-    await state.update_data(inquery=clean_md(message.text).lower())
     await message.answer(
         text="*Введите текст совершённого действия*\n\n\\[Твой ник]  *ТЕКСТ*  \\[Ник того, кто принял]\n\n(_Пример: _`поцеловал(а)`)",
         parse_mode="Markdown"
@@ -104,7 +93,6 @@ async def final_check(message, state, bot, storage):
     new_command = {
         "title": data["title"],
         "thumb_url": data["thumb_url"],
-        "text_inquery": data["inquery"],
         "text_response": data["response"],
         "text_deny": data["deny"],
         "uses_count": "0"
@@ -121,7 +109,6 @@ async def final_check(message, state, bot, storage):
     await bot.edit_message_text(
         text=f"*Проверьте правильность ввода:*\n\n"
              f"   • _Название:_ {new_command['title']}\n"
-             f"   • _Запрос:_ {new_command['text_inquery']}\n"
              f"   • _Согласие:_ {new_command['text_response']}\n"
              f"   • _Отказ:_ {new_command['text_deny']}\n"
              f"   • _Стикер-превью:_ {"есть" if new_command.get("thumb_url", None) else "отсутствует"}",
