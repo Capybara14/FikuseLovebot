@@ -86,6 +86,7 @@ async def refresh_worker(message, storage, bot):
     msg = await message.reply("*Список админов обновлен*", parse_mode="Markdown")
     await asyncio.sleep(config.SERVICE_MESSAGES_TIMEOUT)
     await msg.delete()
+    await message.delete()
 
 
 @chat_mode_router.message(F.chat.type.in_({"group", "supergroup"}), F.text)
