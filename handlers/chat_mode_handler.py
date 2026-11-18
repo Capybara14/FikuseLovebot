@@ -14,6 +14,7 @@ from utils.text import html_link_to_user
 
 chat_mode_router = Router()
 chat_mode_router.message.filter(F.chat.type.in_({"group", "supergroup"}))
+chat_mode_router.my_chat_member.filter(F.chat.type.in_({"group", "supergroup"}))
 NOT_ADMIN = MEMBER | RESTRICTED | IS_NOT_MEMBER
 
 
