@@ -77,8 +77,8 @@ def back_chat_menu_keyboard(bot_message_id, chat_id):
 def big_keyboard():
     kb = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📋 Мои команды", style="primary")],
-            [KeyboardButton(text="💬 Мои чаты", style="primary")],
+            [KeyboardButton(text="📋 Мои команды", style="primary"),
+             KeyboardButton(text="💬 Мои чаты", style="primary")],
         ],
         resize_keyboard=True,
     )
