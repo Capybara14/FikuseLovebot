@@ -169,7 +169,7 @@ async def rp_handler(message: types.Message, storage):
         f"{link_target}{html.escape(target_first_name)}</a>"
     )
 
-    await message.answer(
+    await message.reply_to_message.reply(
         text=text,
         reply_markup=response_keyboard(author_username),
         parse_mode="HTML",
