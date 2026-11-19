@@ -29,6 +29,9 @@ async def chat_menu(bot_message_id, chat_id, title, storage, message, bot):
         text = f"*Команды чата {title}:*\n\n"
         for cmd_trigger in storage.chats_cache[chat_id]["cmds"]:
             cmd = storage.find_cmd(storage.chats_cache[chat_id]["cmds"][cmd_trigger])
+            if cmd is None:
+                storage.chats_cache[chat_id]["cmds"].pop(cmd_trigger)
+                continue
             text += f"   — {cmd_trigger} ([Детали](https://t.me/{config.BOT_USERNAME}?start=chatcmd_{cmd["id"]}_{chat_id}_{bot_message_id}))\n\n"
         text += f" "
     await bot.edit_message_text(
