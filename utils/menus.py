@@ -23,17 +23,22 @@ async def cmd_menu(bot_message_id, message, bot, storage, target_id=None):
 
 
 async def chat_menu(bot_message_id, chat_id, title, storage, message, bot):
-    if storage.chats_cache.get(chat_id, {}).get("cmds", {}) == {}:
+    cmds = storage.chats_cache.get(chat_id, {}).get("cmds", {})
+    lines = []
+    for cmd_trigger, cmd_id in list(cmds.items()):
+        cmd = storage.find_cmd(cmd_id)
+        if cmd is None:
+            cmds.pop(cmd_trigger, None)
+            continue
+        lines.append(
+            f"   — {cmd_trigger} ([Детали](https://t.me/{config.BOT_USERNAME}?start=chatcmd_{cmd["id"]}_{chat_id}_{bot_message_id}))\n\n"
+        )
+
+    if not lines:
         text = "❗ *В чате ещё нет команд, выберите действие*"
     else:
-        text = f"*Команды чата {title}:*\n\n"
-        for cmd_trigger in storage.chats_cache[chat_id]["cmds"]:
-            cmd = storage.find_cmd(storage.chats_cache[chat_id]["cmds"][cmd_trigger])
-            if cmd is None:
-                storage.chats_cache[chat_id]["cmds"].pop(cmd_trigger)
-                continue
-            text += f"   — {cmd_trigger} ([Детали](https://t.me/{config.BOT_USERNAME}?start=chatcmd_{cmd["id"]}_{chat_id}_{bot_message_id}))\n\n"
-        text += f" "
+        text = f"*Команды чата {title}:*\n\n" + "".join(lines) + " "
+
     await bot.edit_message_text(
         text=text,
         chat_id=message.chat.id,
