@@ -80,6 +80,7 @@ def big_keyboard():
             [KeyboardButton(text="📋 Мои команды", style="primary"),
              KeyboardButton(text="💬 Мои чаты", style="primary")],
         ],
+        is_persistent=True,
         resize_keyboard=True,
     )
     return kb
