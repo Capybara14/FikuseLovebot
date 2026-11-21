@@ -68,12 +68,11 @@ async def start_worker(message: types.Message, storage, bot, state):
 @pm_commands_router.message(F.text == "📋 Мои команды")
 @pm_commands_router.message(Command("my_commands"))
 async def my_command_worker(message: types.Message, state: FSMContext, storage, bot):
+    bot_message = await message.answer(text="_Загрузка..._", parse_mode="Markdown")
     if str(message.from_user.id) in config.ADMINS and len(message.text.split()) == 2:
         target_id = message.text.split()[1]
-        bot_message = await message.answer(text="_Загрузка команд..._", parse_mode="Markdown")
         await cmd_menu(bot_message.message_id, message, bot, storage, target_id)
         return
-    bot_message = await message.answer(text="_Загрузка команд..._", parse_mode="Markdown")
     await cmd_menu(bot_message.message_id, message, bot, storage)
 
 
