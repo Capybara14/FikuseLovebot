@@ -12,7 +12,7 @@ class AntiSpamMiddleware(BaseMiddleware):
 
     async def __call__(self, handler, event, data: dict):
         user = data.get("event_from_user")
-        if not user or user.is_bot or user.id in config.ADMINS:
+        if not user or user.is_bot or str(user.id) in config.ADMINS:
             return await handler(event, data)
 
         now = time.monotonic()

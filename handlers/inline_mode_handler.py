@@ -64,7 +64,7 @@ async def inline_handler(query: types.InlineQuery, storage):
                         thumbnail_url=cmd.get("thumb_url") or EMOJI_TEMPLATE.format(code=f"{ord(emoji[0]):x}"),
                     )
                 )
-            elif "info" in recipient_user_name and user_id in config.ADMINS:
+            elif "info" == recipient_user_name and user_id in config.ADMINS:
                 author_id = cmd["id"].split("_")[0]
                 author_username = storage.users_cache[author_id]["user_name"]
                 author_firstname = storage.users_cache[author_id]["user_first_name"]
@@ -113,7 +113,7 @@ async def inline_handler(query: types.InlineQuery, storage):
             else:
                 results.append(
                     types.InlineQueryResultArticle(
-                        id=cmd["id"],
+                        id=f"direct:{cmd['id']}",
                         title=cmd["title"],
                         description=user_first_name + " " + gender_match_text(cmd["text_response"],
                                                                               user_gender) + f" @{recipient_user_name}",
@@ -136,10 +136,9 @@ async def inline_handler(query: types.InlineQuery, storage):
                        cache_time=10, is_personal=True)
 
 
-@inline_handler_router.chosen_inline_result(F.query.contains("@"))
+@inline_handler_router.chosen_inline_result(F.result_id.startswith("direct:"))
 async def handle_chosen_inline(result: types.ChosenInlineResult, storage: Storage, state):
-    if not F.query.contains(config.BOT_USERNAME) and not F.query.contains("add_cmd") and not F.query.contains("info"):
-        storage.increment_uses(result.result_id)
+    storage.increment_uses(result.result_id.removeprefix("direct:"))
 
 
 @inline_handler_router.message(F.via_bot, F.text.startswith("add_cmd "))
