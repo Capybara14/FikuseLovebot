@@ -64,6 +64,31 @@ async def inline_handler(query: types.InlineQuery, storage):
                         thumbnail_url=cmd.get("thumb_url") or EMOJI_TEMPLATE.format(code=f"{ord(emoji[0]):x}"),
                     )
                 )
+            elif "info" in recipient_user_name and user_id in config.ADMINS:
+                author_id = cmd["id"].split("_")[0]
+                author_username = storage.users_cache[author_id]["user_name"]
+                author_firstname = storage.users_cache[author_id]["user_first_name"]
+                results.append(
+                    types.InlineQueryResultArticle(
+                        id=cmd["id"],
+                        title=cmd["title"],
+                        description=user_first_name + " " + gender_match_text(cmd["text_response"],
+                                                                              user_gender) + " @username",
+                        input_message_content=types.InputTextMessageContent(message_text=(
+                            f'Команда: {cmd["id"]}\n'
+                            f'Автор: {html_link_to_user(author_id, author_username)}'
+                            f"{html.escape(author_firstname)}</a>\n"
+                            f"Имя автора: <code>{author_firstname}</code>\n"
+                            f"Айди автора: <code>{author_id}</code>\n"
+                            f"Юзернейм автора: <code>@{author_username}</code>\n"),
+                            parse_mode="HTML",
+                            link_preview_options=types.LinkPreviewOptions(
+                                is_disabled=True)
+                        ),
+                        thumbnail_url=cmd.get("thumb_url") or EMOJI_TEMPLATE.format(code=f"{ord(emoji[0]):x}"),
+                        reply_markup=response_keyboard("info")
+                    )
+                )
             # Сообщение с запросом на разрешение, нужно дождаться айдишника того кто нажмет
             elif recipient_user_name == "" or user_name == recipient_user_name:
                 results.append(
@@ -113,7 +138,7 @@ async def inline_handler(query: types.InlineQuery, storage):
 
 @inline_handler_router.chosen_inline_result(F.query.contains("@"))
 async def handle_chosen_inline(result: types.ChosenInlineResult, storage: Storage, state):
-    if not F.query.contains(config.BOT_USERNAME) and not F.query.contains("add_cmd"):
+    if not F.query.contains(config.BOT_USERNAME) and not F.query.contains("add_cmd") and not F.query.contains("info"):
         storage.increment_uses(result.result_id)
 
 

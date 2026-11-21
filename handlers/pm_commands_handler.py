@@ -95,7 +95,7 @@ async def create_command(message: types.Message, storage, state: FSMContext, bot
     if len(storage.commands_cache.get(str(message.from_user.id), [])) < config.LIMIT_OF_COMMANDS:
         bot_message = await message.answer(text="_Загрузка..._", parse_mode="Markdown")
         await bot.edit_message_text(
-            text="*Введите название своей команды*\n\n\\[Твой ник] хочет *НАЗВАНИЕ*\n\n(_Этот текст будет отображаться после слова «хочет» и использоваться как триггер в чатах. Пример:_ `Поцеловать`)",
+            text="*Введите название своей команды*\n\n\\[Твой ник] хочет *ТЕКСТ*\n\n(_Этот текст будет отображаться после слова «хочет» и использоваться как триггер в чатах. Пример:_ `Поцеловать`)",
             chat_id=message.chat.id,
             message_id=bot_message.message_id,
             reply_markup=back_cmd_menu_keyboard(bot_message.message_id),
