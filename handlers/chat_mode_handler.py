@@ -113,6 +113,7 @@ async def rp_handler(message: types.Message, storage):
         return
 
     target = None
+    reply_target = message
     if remainder.startswith("@"):
         token = remainder.split(maxsplit=1)[0]
         if len(token) > 1:
@@ -135,6 +136,7 @@ async def rp_handler(message: types.Message, storage):
         reply = message.reply_to_message
         if not reply:
             return
+        reply_target = reply
         if reply.sender_chat:
             target = (
                 html_link_to_user(reply.sender_chat.id, reply.sender_chat.username, True),
@@ -169,7 +171,7 @@ async def rp_handler(message: types.Message, storage):
         f"{link_target}{html.escape(target_first_name)}</a>"
     )
 
-    await message.reply_to_message.reply(
+    await reply_target.reply(
         text=text,
         reply_markup=response_keyboard(author_username),
         parse_mode="HTML",
