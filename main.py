@@ -3,6 +3,7 @@ import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
 
+import wispbyte_waker
 from handlers import handler_router
 from database.storage import Storage
 import config
@@ -14,13 +15,15 @@ dp = Dispatcher()
 
 
 @dp.startup()
-async def on_startup(storage: Storage):
+async def on_startup(storage: Storage, bot):
     dp["save_task"] = asyncio.create_task(storage.save_cache())
+    dp["wake-up"] = asyncio.create_task(wispbyte_waker.waker(15, bot))
 
 
 @dp.shutdown()
-async def on_shutdown(storage: Storage):
+async def on_shutdown(storage: Storage, bot):
     dp["save_task"].cancel()
+    dp["wake-up"].cancel()
     try:
         await dp["save_task"]
     except asyncio.CancelledError:
