@@ -89,6 +89,23 @@ async def refresh_worker(message, storage, bot):
     await message.delete()
 
 
+@chat_mode_router.message(Command("chat_commands"))
+async def help_worker(message, storage):
+    if storage.chats_cache[str(message.chat.id)]["cmds"] == {}:
+        text = "❗ В этом чате ещё нет команд, добавленных админами"
+    else:
+        text = f"*📋 Команды чата:*\n\n"
+        for i in storage.chats_cache[str(message.chat.id)]["cmds"]:
+            text+=f"   — {i}\n\n"
+
+    bot_message = await message.answer(
+        text=text,
+        parse_mode="Markdown")
+    await asyncio.sleep(config.SERVICE_MESSAGES_TIMEOUT)
+    await bot_message.delete()
+    await message.delete()
+
+
 def _migrate_chat(old_chat_id: str, new_chat_id: str, storage) -> None:
     old_data = storage.chats_cache.pop(old_chat_id, None)
     if not old_data:
@@ -170,7 +187,8 @@ async def rp_handler(message: types.Message, storage):
             )
     elif remainder and message.entities:
         for entity in message.entities:
-            if entity.type == "text_mention" and entity.user and remainder.startswith(entity.extract_from(message.text)):
+            if entity.type == "text_mention" and entity.user and remainder.startswith(
+                    entity.extract_from(message.text)):
                 target = (
                     html_link_to_user(entity.user.id, entity.user.username),
                     entity.user.first_name,
