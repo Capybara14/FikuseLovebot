@@ -151,7 +151,7 @@ async def add_cmd_from_inline(message: types.Message, storage, bot):
     if len(cmd_ids) < config.LIMIT_OF_COMMANDS:
         if cmd_id in cmd_ids:
             return
-        cmds[storage.find_cmd(cmd_id)["title"][2:].lower()] = cmd_id
+        cmds[storage.find_cmd(cmd_id)["title"][2:].lower().strip()] = cmd_id
         chat = await bot.get_chat(chat_id)
         title = chat.title or f"{chat_id}"
         await chat_menu(bot_message_id, chat_id, title, storage, message, bot)

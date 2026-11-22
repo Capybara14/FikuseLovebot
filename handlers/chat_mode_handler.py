@@ -89,21 +89,66 @@ async def refresh_worker(message, storage, bot):
     await message.delete()
 
 
+def _migrate_chat(old_chat_id: str, new_chat_id: str, storage) -> None:
+    old_data = storage.chats_cache.pop(old_chat_id, None)
+    if not old_data:
+        return
+
+    new_data = storage.chats_cache.get(new_chat_id)
+    if new_data is None:
+        storage.chats_cache[new_chat_id] = old_data
+    else:
+        merged_cmds = dict(old_data.get("cmds", {}))
+        merged_cmds.update(new_data.get("cmds", {}))
+        new_data["cmds"] = merged_cmds
+        if not new_data.get("admins") and old_data.get("admins"):
+            new_data["admins"] = old_data["admins"]
+
+    for admin_id in old_data.get("admins", []):
+        user_chats = (storage.users_cache.get(admin_id) or {}).get("chats")
+        if user_chats and old_chat_id in user_chats:
+            if new_chat_id in user_chats:
+                user_chats.remove(old_chat_id)
+            else:
+                user_chats[user_chats.index(old_chat_id)] = new_chat_id
+
+
+@chat_mode_router.message(F.migrate_to_chat_id)
+async def chat_migrated_to(message: types.Message, storage):
+    _migrate_chat(str(message.chat.id), str(message.migrate_to_chat_id), storage)
+
+
+@chat_mode_router.message(F.migrate_from_chat_id)
+async def chat_migrated_from(message: types.Message, storage):
+    _migrate_chat(str(message.migrate_from_chat_id), str(message.chat.id), storage)
+
+
 def _find_command(text: str, cmds: dict[str, str]) -> tuple[str, str] | None:
     lower_text = text.lower()
-    for trigger in sorted(cmds, key=len, reverse=True):
-        trigger_lower = trigger.lower()
-        if lower_text == trigger_lower:
-            return cmds[trigger], ""
-        if lower_text.startswith(trigger_lower) and lower_text[len(trigger_lower)].isspace():
-            return cmds[trigger], text[len(trigger_lower):].strip()
+    cmd_id = cmds.get(lower_text)
+    if cmd_id is not None:
+        return cmd_id, ""
+
+    parts = lower_text.split(maxsplit=1)
+    if len(parts) < 2:
+        return None
+
+    cmd_id = cmds.get(parts[0])
+    if cmd_id is not None:
+        return cmd_id, text.split(maxsplit=1)[1]
+
+    for trigger, cmd_id in cmds.items():
+        if lower_text.startswith(trigger) and lower_text[len(trigger)].isspace():
+            return cmd_id, text[len(trigger):].lstrip()
     return None
 
 
 @chat_mode_router.message(F.chat.type.in_({"group", "supergroup"}), F.text)
 async def rp_handler(message: types.Message, storage):
-    cmds = storage.chats_cache.get(str(message.chat.id), {}).get("cmds", {})
-    matched = _find_command(message.text.strip(), cmds)
+    cmds = storage.chats_cache.get(str(message.chat.id), {}).get("cmds")
+    if not cmds:
+        return
+    matched = _find_command(message.text, cmds)
     if not matched:
         return
 

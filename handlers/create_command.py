@@ -23,7 +23,7 @@ class CreateCmd(StatesGroup):
 
 @create_command_router.message(CreateCmd.title, F.text)
 async def enter_the_name(message: types.Message, state: FSMContext):
-    await state.update_data(title=clean_md(message.text).capitalize())
+    await state.update_data(title=clean_md(message.text).capitalize().strip())
     await message.answer(
         text="*Введите эмодзи для команды*\n\n(_Будет располагаться рядом с названием_)",
         parse_mode="Markdown"
