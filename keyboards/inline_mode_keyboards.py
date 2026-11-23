@@ -12,6 +12,6 @@ def inquery_keyboard(cmd_id: str, user_id: str):
 
 def response_keyboard(user_name):
     text = f"@{user_name} " if user_name else " "
-    kb = [[InlineKeyboardButton(text ="Ответить", switch_inline_query_current_chat=text)]]
+    kb = [[InlineKeyboardButton(text ="Ответить", switch_inline_query_current_chat=text, style="primary")]]
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
