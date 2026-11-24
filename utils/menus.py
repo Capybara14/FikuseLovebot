@@ -2,25 +2,28 @@ import config
 from keyboards.pm_mode_keyboards import commands_keyboard, chat_commands_keyboard
 
 
-async def cmd_menu(bot_message_id, message, bot, storage, target_id=None):
+async def cmd_menu(bot_message_id, message, bot, storage, target_id=None, page=0):
     if target_id is None:
         target_id = str(message.chat.id)
-    if storage.commands_cache.get(target_id, None) is None or len(
-            storage.commands_cache[target_id]) == 0:
+    cmds = storage.commands_cache.get(target_id) or []
+    per_page = config.COMMANDS_PER_PAGE
+    total_pages = max(1, (len(cmds) + per_page - 1) // per_page)
+    page = max(0, min(page, total_pages - 1))
+
+    if not cmds:
         text = "❗ *У вас ещё нет команд, выберите действие*"
     else:
-        text = f"*📋 Ваши команды:*\n\n"
-        for cmd in storage.commands_cache[target_id]:
-            text += f"   — {cmd["title"]} ([Детали](https://t.me/{config.BOT_USERNAME}?start=mycmd_{cmd["id"]}_{bot_message_id}))\n\n"
-        text += f" "
-        if storage.commands_cache[target_id] is None:
-            text = "❗ *У вас ещё нет команд, выберите действие*"
+        page_cmds = cmds[page * per_page:(page + 1) * per_page]
+        text = "*📋 Ваши команды:*\n\n"
+        for cmd in page_cmds:
+            text += f"   — {cmd['title']} ([Детали](https://t.me/{config.BOT_USERNAME}?start=mycmd_{cmd['id']}_{bot_message_id}))\n\n"
+        text += " "
 
     await bot.edit_message_text(
         text=text,
         chat_id=message.chat.id,
         message_id=int(bot_message_id),
-        reply_markup=commands_keyboard(user_id=target_id, storage=storage),
+        reply_markup=commands_keyboard(user_id=target_id, storage=storage, page=page),
         parse_mode="Markdown")
 
 

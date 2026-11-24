@@ -5,13 +5,27 @@ import config
 
 
 # Клавиатура меню команд
-def commands_keyboard(user_id: str, storage):
-    gender = storage.users_cache.get(user_id).get("gender")
-    kb = [
+def commands_keyboard(user_id: str, storage, page: int = 0):
+    gender = (storage.users_cache.get(user_id) or {}).get("gender")
+    cmds = storage.commands_cache.get(user_id) or []
+    per_page = config.COMMANDS_PER_PAGE
+    total_pages = max(1, (len(cmds) + per_page - 1) // per_page)
+    page = max(0, min(page, total_pages - 1))
+
+    kb = []
+    if total_pages > 1:
+        nav_row = []
+        if page > 0:
+            nav_row.append(InlineKeyboardButton(text="⬅️", callback_data=f"btn_cmd_page {user_id} {page - 1}"))
+        if page < total_pages - 1:
+            nav_row.append(InlineKeyboardButton(text="➡️", callback_data=f"btn_cmd_page {user_id} {page + 1}"))
+        if nav_row:
+            kb.append(nav_row)
+    kb.extend([
         [InlineKeyboardButton(text="➕ Создать команду", callback_data="btn_add_command", style="primary")],
-        [InlineKeyboardButton(text=f"Твой пол: {gender if gender else "Нажимай!"}",
-                              callback_data=f"btn_gender {gender}")]
-    ]
+        [InlineKeyboardButton(text=f"Твой пол: {gender if gender else 'Нажимай!'}",
+                              callback_data=f"btn_gender {gender} {page}")]
+    ])
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 

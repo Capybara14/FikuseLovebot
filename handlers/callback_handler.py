@@ -81,6 +81,12 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
     elif parts[0] == "btn_all_right":
         await successfully_create(call, bot)
 
+    elif parts[0] == "btn_cmd_page":
+        target_id = parts[1]
+        page = int(parts[2])
+        await cmd_menu(call.message.message_id, call.message, bot, storage, target_id=target_id, page=page)
+        await call.answer()
+
     elif parts[0] == "btn_back_cmd_menu":
         await state.clear()
         bot_message_id = call.message.message_id
@@ -119,8 +125,9 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
         elif gender == "Женский":
             gender = "Мужской"
         storage.users_cache[str(call.from_user.id)]["gender"] = gender
+        page = int(parts[2]) if len(parts) > 2 else 0
         await call.message.edit_reply_markup(
-            reply_markup=commands_keyboard(str(call.from_user.id), storage)
+            reply_markup=commands_keyboard(str(call.from_user.id), storage, page=page)
         )
 
     elif parts[0] == "btn_delete_chat_command":
