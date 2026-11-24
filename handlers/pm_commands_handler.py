@@ -126,14 +126,14 @@ async def unban_worker(message, storage):
 @pm_commands_router.message(F.text == "💬 Мои чаты")
 @pm_commands_router.message(Command("my_chats"))
 async def my_chats_worker(message, storage, bot):
-    chats = storage.users_cache[str(message.from_user.id)].get("chats")
+    chats = (storage.users_cache.get(str(message.from_user.id)) or {}).get("chats")
     bot_message = await message.answer("_Загрузка..._", parse_mode="Markdown")
-    if chats is not None and len(chats) > 0:
+    kb = await choose_chat_keyboard(chats, bot_message.message_id, bot, storage) if chats else None
+    if kb and kb.inline_keyboard:
         await bot.edit_message_text("*Выберите чат для настройки:* ", chat_id=message.chat.id,
                                     message_id=bot_message.message_id,
                                     parse_mode="Markdown",
-                                    reply_markup=await choose_chat_keyboard(chats, bot_message.message_id, bot,
-                                                                            storage))
+                                    reply_markup=kb)
     else:
         await bot.edit_message_text("❗ *Вы не являетесь админом ни одного из чатов, где есть бот*",
                                     chat_id=message.chat.id,

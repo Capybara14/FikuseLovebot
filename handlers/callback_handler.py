@@ -159,15 +159,15 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
 
     elif parts[0] == "btn_back_to_chat_choose":
         bot_message_id = parts[1]
-        chats = storage.users_cache[str(call.from_user.id)].get("chats")
-        if chats is not None and len(chats) > 0:
+        chats = (storage.users_cache.get(str(call.from_user.id)) or {}).get("chats")
+        kb = await choose_chat_keyboard(chats, bot_message_id, bot, storage) if chats else None
+        if kb and kb.inline_keyboard:
             await bot.edit_message_text("*Выберите чат для настройки: *", chat_id=call.message.chat.id,
                                         message_id=bot_message_id,
                                         parse_mode="Markdown",
-                                        reply_markup=await choose_chat_keyboard(chats, bot_message_id, bot,
-                                                                                storage))
+                                        reply_markup=kb)
         else:
-            await bot.edit_message_text("❗ Вы не являетесь админом ни одного из чатов, где есть бот",
+            await bot.edit_message_text("❗ *Вы не являетесь админом ни одного из чатов, где есть бот*",
                                         chat_id=call.message.chat.id,
                                         message_id=bot_message_id, parse_mode="Markdown")
     await call.answer()

@@ -30,7 +30,6 @@ def commands_keyboard(user_id: str, storage, page: int = 0):
         InlineKeyboardButton(
             text=f"Твой пол: {gender if gender else 'Нажимай!'}",
             callback_data=f"btn_gender {gender} {page}",
-            style="primary",
         )
     ])
     return InlineKeyboardMarkup(inline_keyboard=kb)
@@ -98,9 +97,9 @@ def back_chat_menu_keyboard(bot_message_id, chat_id):
 def big_keyboard():
     kb = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📋 Мои команды", style="primary"),
-             KeyboardButton(text="💬 Мои чаты", style="primary")],
             [KeyboardButton(text="➕ Создать команду", style="primary"),
+             KeyboardButton(text="📋 Мои команды", style="primary")],
+            [KeyboardButton(text="💬 Мои чаты", style="primary"),
              KeyboardButton(text="💚 Помощь", style="primary")],
         ],
         is_persistent=True,
