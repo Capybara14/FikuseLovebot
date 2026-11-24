@@ -14,17 +14,23 @@ def commands_keyboard(user_id: str, storage, page: int = 0):
 
     kb = []
     if total_pages > 1:
-        nav_row = []
-        if page > 0:
-            nav_row.append(InlineKeyboardButton(text="⬅️", callback_data=f"btn_cmd_page {user_id} {page - 1}"))
-        if page < total_pages - 1:
-            nav_row.append(InlineKeyboardButton(text="➡️", callback_data=f"btn_cmd_page {user_id} {page + 1}"))
-        if nav_row:
-            kb.append(nav_row)
-    kb.extend([
-        [InlineKeyboardButton(text="➕ Создать команду", callback_data="btn_add_command", style="primary")],
-        [InlineKeyboardButton(text=f"Твой пол: {gender if gender else 'Нажимай!'}",
-                              callback_data=f"btn_gender {gender} {page}")]
+        prev_btn = (
+            InlineKeyboardButton(text="⬅️", callback_data=f"btn_cmd_page {user_id} {page - 1}")
+            if page > 0
+            else InlineKeyboardButton(text="\u200b", callback_data="btn_noop")
+        )
+        counter_btn = InlineKeyboardButton(text=f"{page + 1}/{total_pages}", callback_data="btn_noop")
+        next_btn = (
+            InlineKeyboardButton(text="➡️", callback_data=f"btn_cmd_page {user_id} {page + 1}")
+            if page < total_pages - 1
+            else InlineKeyboardButton(text="\u200b", callback_data="btn_noop")
+        )
+        kb.append([prev_btn, counter_btn, next_btn])
+    kb.append([
+        InlineKeyboardButton(
+            text=f"Твой пол: {gender if gender else 'Нажимай!'}",
+            callback_data=f"btn_gender {gender} {page}",
+        )
     ])
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
@@ -93,6 +99,8 @@ def big_keyboard():
         keyboard=[
             [KeyboardButton(text="📋 Мои команды", style="primary"),
              KeyboardButton(text="💬 Мои чаты", style="primary")],
+            [KeyboardButton(text="➕ Создать команду", style="primary"),
+             KeyboardButton(text="💚 Помощь", style="primary")],
         ],
         is_persistent=True,
         resize_keyboard=True,

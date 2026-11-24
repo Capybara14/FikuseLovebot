@@ -80,8 +80,8 @@ async def my_command_worker(message: types.Message, state: FSMContext, storage, 
 @pm_commands_router.message(Command("help"))
 async def help_worker(message):
     await message.answer(
-        text="*💚 Инструкция и советы:*\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • Если при создании команды использовать скобки с вариантом для женского пола, например: поцеловался(лась) или его(её), то для людей с указанным в настройках полом, сообщение будет меняться в соответствии с ним    • Доступ к изменению команд чата имеют все админы чата\n\n*👾 Доступные команды:*\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд\n    /my\\_chats — просмотр и настройка твоих чатов",
-        parse_mode="Markdown")
+        text="*💚 Помощь и советы:*\n    • Если в поле ввода ввести юзернейм цели, то подтверждение не потребуется\n    • Если при создании команды использовать скобки с вариантом для женского пола, например: поцеловался(лась) или его(её), то для людей с указанным в настройках полом, сообщение будет меняться в соответствии с ним    • Доступ к изменению команд чата имеют все админы чата\n\n*👾 Доступные команды:*\n    /start — Приветствие\n    /new\\_command — создать команду\n    /my\\_commands — просмотр твоих команд\n    /my\\_chats — просмотр и настройка твоих чатов",
+        parse_mode="Markdown", reply_markup=big_keyboard())
 
 
 @pm_commands_router.message(F.text == "➕ Создать команду")
@@ -112,7 +112,7 @@ async def ban_worker(message, storage):
         storage.set_ban(user_id, True)
         await message.answer(
             text=f"*Пользователь {user_id} забанен*\nОн не сможет использовать бота ни в каком виде, а все его команды удалены.",
-            parse_mode="Markdown")
+            parse_mode="Markdown", reply_markup=big_keyboard())
 
 
 @pm_commands_router.message(Command("unban"))
@@ -120,7 +120,7 @@ async def unban_worker(message, storage):
     if str(message.from_user.id) in config.ADMINS:
         user_id = message.text.split(" ", 1)[1]
         storage.set_ban(user_id, False)
-        await message.answer(text=f"*Пользователь {user_id} разбанен*", parse_mode="Markdown")
+        await message.answer(text=f"*Пользователь {user_id} разбанен*", parse_mode="Markdown", reply_markup=big_keyboard())
 
 
 @pm_commands_router.message(F.text == "💬 Мои чаты")

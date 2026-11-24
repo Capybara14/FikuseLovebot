@@ -11,13 +11,13 @@ async def cmd_menu(bot_message_id, message, bot, storage, target_id=None, page=0
     page = max(0, min(page, total_pages - 1))
 
     if not cmds:
-        text = "❗ *У вас ещё нет команд, выберите действие*"
+        text = "❗ *У вас ещё нет команд*\n\n_Создать команду:_ /new\\_command"
     else:
         page_cmds = cmds[page * per_page:(page + 1) * per_page]
         text = "*📋 Ваши команды:*\n\n"
         for cmd in page_cmds:
             text += f"   — {cmd['title']} ([Детали](https://t.me/{config.BOT_USERNAME}?start=mycmd_{cmd['id']}_{bot_message_id}))\n\n"
-        text += " "
+        text += "_Создать команду:_ /new\\_command"
 
     await bot.edit_message_text(
         text=text,
