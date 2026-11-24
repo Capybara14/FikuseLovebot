@@ -24,5 +24,10 @@ def gender_match_text(text: str, gender: str) -> str:
             new_text = text.replace("(лась)", "")
         if gender == "Женский":
             new_text = text.replace("лся(лась)", "лась")
+    if "(её)" in text:
+        if gender == "Мужской":
+            new_text = text.replace("(ей)", "")
+        if gender == "Женский":
+            new_text = text.replace("ему(ей)", "ей")
 
     return new_text
