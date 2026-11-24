@@ -75,6 +75,10 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
 @callback_handler_router.callback_query(F.message, F.data.startswith("btn_"))
 async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMContext, bot):
     parts = call.data.split(" ")
+    if parts[0] == "btn_noop":
+        await call.answer()
+        return
+
     if parts[0] == "btn_add_command":
         await create_command(message=call.message, storage=storage, state=state, bot=bot)
 

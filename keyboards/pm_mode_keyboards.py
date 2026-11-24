@@ -15,13 +15,13 @@ def commands_keyboard(user_id: str, storage, page: int = 0):
     kb = []
     if total_pages > 1:
         prev_btn = (
-            InlineKeyboardButton(text="⬅️", callback_data=f"btn_cmd_page {user_id} {page - 1}")
+            InlineKeyboardButton(text="⬅️", callback_data=f"btn_cmd_page {user_id} {page - 1}", style="primary")
             if page > 0
             else InlineKeyboardButton(text="\u200b", callback_data="btn_noop")
         )
-        counter_btn = InlineKeyboardButton(text=f"{page + 1}/{total_pages}", callback_data="btn_noop")
+        counter_btn = InlineKeyboardButton(text=f"{page + 1}/{total_pages}", callback_data="btn_noop", style="primary")
         next_btn = (
-            InlineKeyboardButton(text="➡️", callback_data=f"btn_cmd_page {user_id} {page + 1}")
+            InlineKeyboardButton(text="➡️", callback_data=f"btn_cmd_page {user_id} {page + 1}", style="primary")
             if page < total_pages - 1
             else InlineKeyboardButton(text="\u200b", callback_data="btn_noop")
         )
@@ -30,6 +30,7 @@ def commands_keyboard(user_id: str, storage, page: int = 0):
         InlineKeyboardButton(
             text=f"Твой пол: {gender if gender else 'Нажимай!'}",
             callback_data=f"btn_gender {gender} {page}",
+            style="primary",
         )
     ])
     return InlineKeyboardMarkup(inline_keyboard=kb)
