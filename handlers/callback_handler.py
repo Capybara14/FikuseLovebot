@@ -80,7 +80,7 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
         return
 
     if parts[0] == "btn_add_command":
-        await create_command(message=call.message, storage=storage, state=state, bot=bot)
+        await create_command(message=call.message, storage=storage, state=state)
 
     elif parts[0] == "btn_all_right":
         await successfully_create(call, bot)
@@ -93,16 +93,13 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
 
     elif parts[0] == "btn_back_cmd_menu":
         await state.clear()
-        bot_message_id = call.message.message_id
-        if len(parts) > 2:
-            cmd_id = parts[2]
+        if len(parts) > 1:
+            cmd_id = parts[1]
             author_cmd_id = cmd_id.split("_")[0]
             cmd = storage.find_cmd(cmd_id)
             if not cmd: return
             storage.commands_cache[author_cmd_id].remove(cmd)
-        if len(parts) > 1:
-            bot_message_id = parts[1]
-        await cmd_menu(bot_message_id, call.message, bot, storage)
+        await cmd_menu(call.message.message_id, call.message, bot, storage)
 
     elif parts[0] == "btn_delete_command":
         try:
@@ -117,7 +114,7 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
         await bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text=text, reply_markup=back_cmd_menu_keyboard(call.message.message_id),
+            text=text, reply_markup=back_cmd_menu_keyboard(),
             parse_mode="Markdown")
 
     elif parts[0] == "btn_gender":
@@ -147,29 +144,27 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
         await bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text=text, reply_markup=back_chat_menu_keyboard(call.message.message_id, chat_id),
+            text=text, reply_markup=back_chat_menu_keyboard(chat_id),
             parse_mode="Markdown")
 
     elif parts[0] == "btn_chat_cmd_choose":
         chat_id = parts[1]
-        bot_message_id = parts[2]
         chat = await bot.get_chat(chat_id)
         title = chat.title or f"{chat_id}"
-        await chat_menu(bot_message_id, chat_id, title, storage, call.message, bot)
+        await chat_menu(call.message.message_id, chat_id, title, storage, call.message, bot)
 
     elif parts[0] == "btn_back_to_chat_choose":
-        bot_message_id = parts[1]
         chats = (storage.users_cache.get(str(call.from_user.id)) or {}).get("chats")
-        kb = await choose_chat_keyboard(chats, bot_message_id, bot, storage) if chats else None
+        kb = await choose_chat_keyboard(chats, bot) if chats else None
         if kb and kb.inline_keyboard:
             await bot.edit_message_text("*Выберите чат для настройки: *", chat_id=call.message.chat.id,
-                                        message_id=bot_message_id,
+                                        message_id=call.message.message_id,
                                         parse_mode="Markdown",
                                         reply_markup=kb)
         else:
             await bot.edit_message_text("❗ *Вы не являетесь админом ни одного из чатов, где есть бот*",
                                         chat_id=call.message.chat.id,
-                                        message_id=bot_message_id, parse_mode="Markdown")
+                                        message_id=call.message.message_id, parse_mode="Markdown")
     await call.answer()
 
 

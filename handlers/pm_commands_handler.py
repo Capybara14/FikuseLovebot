@@ -22,7 +22,7 @@ async def start_worker(message: types.Message, storage, bot, state):
             text=f'👋 *Привет! Это бот для RP команд.*\n\nПросто введи `@{config.BOT_USERNAME}` и выбирай команду!\n\nЕсли что-то не понятно, используй /help',
             parse_mode="Markdown", reply_markup=big_keyboard())
     elif parts[1] == "create_command":
-        await create_command(message, storage, state, bot)
+        await create_command(message, storage, state)
     elif parts[1].split("_")[0] == "chatcmd":
         option_parts = parts[1].split("_")[1:]
         cmd_id = option_parts[0] + "_" + option_parts[1]
@@ -41,7 +41,7 @@ async def start_worker(message: types.Message, storage, bot, state):
                                         f"_Число использований:_ {cmd['uses_count']}\n",
                                         chat_id=message.chat.id,
                                         message_id=bot_message_id,
-                                        reply_markup=chat_command_details_keyboard(chat_id, cmd_id, bot_message_id),
+                                        reply_markup=chat_command_details_keyboard(chat_id, cmd_id),
                                         parse_mode="Markdown")
 
     elif parts[1].split("_")[0] == "mycmd":
@@ -61,7 +61,7 @@ async def start_worker(message: types.Message, storage, bot, state):
                                     f"_Число использований:_ {cmd['uses_count']}\n",
                                     chat_id=message.chat.id,
                                     message_id=bot_message,
-                                    reply_markup=command_details_keyboard(cmd_id, bot_message), parse_mode="Markdown")
+                                    reply_markup=command_details_keyboard(cmd_id), parse_mode="Markdown")
 
 
 # Меню команд
@@ -86,23 +86,20 @@ async def help_worker(message):
 
 @pm_commands_router.message(F.text == "➕ Создать команду")
 @pm_commands_router.message(Command("new_command"))
-async def create_command_worker(message, storage, state, bot):
-    await create_command(message, storage, state, bot)
+async def create_command_worker(message, storage, state):
+    await create_command(message, storage, state)
 
 
-async def create_command(message: types.Message, storage, state: FSMContext, bot):
+async def create_command(message: types.Message, storage, state: FSMContext):
     if len(storage.commands_cache.get(str(message.from_user.id), [])) < config.LIMIT_OF_COMMANDS:
-        bot_message = await message.answer(text="_Загрузка..._", parse_mode="Markdown")
-        await bot.edit_message_text(
+        await message.answer(
             text="*Введите название своей команды*\n\n\\[Твой ник] хочет *ТЕКСТ*\n\n(_Этот текст будет отображаться после слова «хочет» и использоваться как триггер в чатах. Пример:_ `Поцеловать`)",
-            chat_id=message.chat.id,
-            message_id=bot_message.message_id,
-            reply_markup=back_cmd_menu_keyboard(bot_message.message_id),
+            reply_markup=back_cmd_menu_keyboard(),
             parse_mode="Markdown")
         await state.set_state(CreateCmd.title)
     else:
         await message.answer(text="❗ *Вы достигли максимального числа команд*",
-                             reply_markup=back_cmd_menu_keyboard(message.message_id), parse_mode="Markdown")
+                             reply_markup=back_cmd_menu_keyboard(), parse_mode="Markdown")
 
 
 @pm_commands_router.message(Command("ban"))
@@ -127,14 +124,8 @@ async def unban_worker(message, storage):
 @pm_commands_router.message(Command("my_chats"))
 async def my_chats_worker(message, storage, bot):
     chats = (storage.users_cache.get(str(message.from_user.id)) or {}).get("chats")
-    bot_message = await message.answer("_Загрузка..._", parse_mode="Markdown")
-    kb = await choose_chat_keyboard(chats, bot_message.message_id, bot, storage) if chats else None
+    kb = await choose_chat_keyboard(chats, bot) if chats else None
     if kb and kb.inline_keyboard:
-        await bot.edit_message_text("*Выберите чат для настройки:* ", chat_id=message.chat.id,
-                                    message_id=bot_message.message_id,
-                                    parse_mode="Markdown",
-                                    reply_markup=kb)
+        await message.answer("*Выберите чат для настройки:* ", parse_mode="Markdown", reply_markup=kb)
     else:
-        await bot.edit_message_text("❗ *Вы не являетесь админом ни одного из чатов, где есть бот*",
-                                    chat_id=message.chat.id,
-                                    message_id=bot_message.message_id, parse_mode="Markdown")
+        await message.answer("❗ *Вы не являетесь админом ни одного из чатов, где есть бот*", parse_mode="Markdown")

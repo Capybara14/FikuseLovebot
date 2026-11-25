@@ -85,7 +85,7 @@ async def enter_text_response(message, state):
 
 
 @create_command_router.message(CreateCmd.deny, F.text)
-async def final_check(message, state, bot, storage):
+async def final_check(message, state, storage):
     await state.update_data(deny=clean_md(message.text).lower())
 
     user_id = str(message.from_user.id)
@@ -105,16 +105,13 @@ async def final_check(message, state, bot, storage):
         commands_max_num = max([int(i["id"].split("_")[1]) for i in storage.commands_cache[user_id]]) + 1
     storage.commands_cache[user_id].append(new_command | {"id": f"{user_id}_{commands_max_num}"})
 
-    bot_message = await message.answer(text="_Сохранение данных..._", parse_mode="Markdown")
-    await bot.edit_message_text(
+    await message.answer(
         text=f"*Проверьте правильность ввода:*\n\n"
              f"   • _Название:_ {new_command['title']}\n"
              f"   • _Согласие:_ {new_command['text_response']}\n"
              f"   • _Отказ:_ {new_command['text_deny']}\n"
              f"   • _Стикер-превью:_ {"есть" if new_command.get("thumb_url", None) else "отсутствует"}",
-        chat_id=bot_message.chat.id,
-        message_id=bot_message.message_id,
-        reply_markup=final_step_keyboard(f"{user_id}_{commands_max_num}", bot_message.message_id),
+        reply_markup=final_step_keyboard(f"{user_id}_{commands_max_num}"),
         parse_mode="Markdown"
     )
     await state.clear()
@@ -126,6 +123,6 @@ async def successfully_create(call, bot):
         text="*Команда успешно сохранена!*",
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        reply_markup=back_cmd_menu_keyboard(call.message.message_id),
+        reply_markup=back_cmd_menu_keyboard(),
         parse_mode="Markdown"
     )
