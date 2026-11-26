@@ -73,7 +73,7 @@ async def chat_menu(bot_message_id, chat_id, title, storage, message, bot, page=
         page_cmds = valid_cmds[page * per_page:(page + 1) * per_page]
         for cmd_trigger, cmd in page_cmds:
             table.append([
-                RichBlockTableCell(text=cmd_trigger, align="left", valign="middle"),
+                RichBlockTableCell(text=f"{cmd_trigger}\u200b", align="left", valign="middle"),
                 RichBlockTableCell(
                     text=RichTextButton(button=RichMessageButton(text="Детали", style=ButtonStyle.PRIMARY,
                                                                  callback_data=BtnCallback(
