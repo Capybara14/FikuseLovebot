@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 import config
 from handlers.create_command import CreateCmd, successfully_create
 from handlers.pm_commands_handler import create_command
+from keyboards.callbacks import BtnCallback
 from keyboards.pm_mode_keyboards import back_cmd_menu_keyboard, commands_keyboard, choose_chat_keyboard, \
     chat_commands_keyboard, back_chat_menu_keyboard
 from keyboards.inline_mode_keyboards import response_keyboard
@@ -17,12 +18,11 @@ callback_handler_router = Router()
 
 
 # 1. Кнопки из инлайн-сообщений (в любом чате)
-@callback_handler_router.callback_query(F.inline_message_id, F.data.startswith("btn_"))
-async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
-    parts = call.data.split(" ")
-    if parts[0] == "btn_accept":
-        cmd_id = parts[1]
-        author_msg_user_id = parts[2]
+@callback_handler_router.callback_query(F.inline_message_id, BtnCallback.filter())
+async def inline_buttons_handler(call: types.CallbackQuery, callback_data: BtnCallback, storage, bot):
+    if callback_data.action == "accept":
+        cmd_id = callback_data.cmd_id
+        author_msg_user_id = callback_data.user_id
         author_msg_user_name = storage.users_cache[author_msg_user_id].get("user_name", None)
         author_msg_first_name = storage.users_cache[author_msg_user_id].get("user_first_name",
                                                                             None) or author_msg_user_name or author_msg_user_id
@@ -30,7 +30,7 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
         cmd = storage.find_cmd(cmd_id)
         if not cmd: return
         emoji = cmd["title"].split()[0] + " | "
-        if str(call.from_user.id) != parts[2]:
+        if str(call.from_user.id) != author_msg_user_id:
             storage.increment_uses(cmd_id)
             text = (
                 f'{emoji}{html_link_to_user(author_msg_user_id, author_msg_user_name)}'
@@ -47,15 +47,15 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
                 link_preview_options=types.LinkPreviewOptions(is_disabled=True),
             )
 
-    elif parts[0] == "btn_deny":
-        cmd_id = parts[1]
-        author_msg_user_id = parts[2]
+    elif callback_data.action == "deny":
+        cmd_id = callback_data.cmd_id
+        author_msg_user_id = callback_data.user_id
         author_msg_user_name = storage.users_cache[author_msg_user_id].get("user_name", None)
         user_gender = storage.users_cache[str(call.from_user.id)].get("gender")
         cmd = storage.find_cmd(cmd_id)
         if not cmd: return
         emoji = "❌ | "
-        if str(call.from_user.id) != parts[2]:
+        if str(call.from_user.id) != author_msg_user_id:
             storage.increment_uses(cmd_id)
             text = (
                 f'{emoji}{html_link_to_user(call.from_user.id, call.from_user.username)}'
@@ -72,38 +72,43 @@ async def inline_buttons_handler(call: types.CallbackQuery, storage, bot):
 
 
 # 2. Кнопки из обычных сообщений в ЛС
-@callback_handler_router.callback_query(F.message, F.data.startswith("btn_"))
-async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMContext, bot):
-    parts = call.data.split(" ")
-    if parts[0] == "btn_noop":
+@callback_handler_router.callback_query(F.message, BtnCallback.filter())
+async def pm_buttons_handler(call: types.CallbackQuery, callback_data: BtnCallback, storage, state: FSMContext, bot):
+    if callback_data.action == "noop":
         await call.answer()
         return
 
-    if parts[0] == "btn_add_command":
+    if callback_data.action == "delete_msg":
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=int(callback_data.message_id))
+        await call.answer()
+        return
+
+    if callback_data.action == "add_command":
         await create_command(message=call.message, storage=storage, state=state)
 
-    elif parts[0] == "btn_all_right":
+    elif callback_data.action == "all_right":
         await successfully_create(call, bot)
 
-    elif parts[0] == "btn_cmd_page":
-        target_id = parts[1]
-        page = int(parts[2])
-        await cmd_menu(call.message.message_id, call.message, bot, storage, target_id=target_id, page=page)
+    elif callback_data.action == "cmd_page":
+        target_id = callback_data.user_id
+        page = callback_data.page or 0
+        await cmd_menu(bot_message_id=call.message.message_id, message=call.message, bot=bot, storage=storage,
+                       target_id=target_id, page=page)
         await call.answer()
 
-    elif parts[0] == "btn_back_cmd_menu":
+    elif callback_data.action == "back_cmd_menu":
         await state.clear()
-        if len(parts) > 1:
-            cmd_id = parts[1]
+        if callback_data.cmd_id:
+            cmd_id = callback_data.cmd_id
             author_cmd_id = cmd_id.split("_")[0]
             cmd = storage.find_cmd(cmd_id)
             if not cmd: return
             storage.commands_cache[author_cmd_id].remove(cmd)
-        await cmd_menu(call.message.message_id, call.message, bot, storage)
+        await cmd_menu(bot_message_id=call.message.message_id, message=call.message, bot=bot, storage=storage)
 
-    elif parts[0] == "btn_delete_command":
+    elif callback_data.action == "delete_command":
         try:
-            cmd_id = parts[1]
+            cmd_id = callback_data.cmd_id
             author_cmd_id = cmd_id.split("_")[0]
             cmd = storage.find_cmd(cmd_id)
             if not cmd: return
@@ -117,23 +122,23 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
             text=text, reply_markup=back_cmd_menu_keyboard(),
             parse_mode="Markdown")
 
-    elif parts[0] == "btn_gender":
-        gender = parts[1]
-        if gender == "None":
+    elif callback_data.action == "gender":
+        gender = callback_data.gender
+        if not gender or gender == "None":
             gender = "Мужской"
         elif gender == "Мужской":
             gender = "Женский"
         elif gender == "Женский":
             gender = "Мужской"
         storage.users_cache[str(call.from_user.id)]["gender"] = gender
-        page = int(parts[2]) if len(parts) > 2 else 0
+        page = callback_data.page if callback_data.page is not None else 0
         await call.message.edit_reply_markup(
             reply_markup=commands_keyboard(str(call.from_user.id), storage, page=page)
         )
 
-    elif parts[0] == "btn_delete_chat_command":
-        chat_id = parts[1]
-        cmd_id = parts[2]
+    elif callback_data.action == "delete_chat_command":
+        chat_id = callback_data.chat_id
+        cmd_id = callback_data.cmd_id
         text = "❌ Ошибка удаления команды"
         cmds = storage.chats_cache.get(chat_id, {}).get("cmds", {})
         for trigger, value in cmds.items():
@@ -147,13 +152,13 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
             text=text, reply_markup=back_chat_menu_keyboard(chat_id),
             parse_mode="Markdown")
 
-    elif parts[0] == "btn_chat_cmd_choose":
-        chat_id = parts[1]
+    elif callback_data.action == "chat_cmd_choose":
+        chat_id = callback_data.chat_id
         chat = await bot.get_chat(chat_id)
         title = chat.title or f"{chat_id}"
         await chat_menu(call.message.message_id, chat_id, title, storage, call.message, bot)
 
-    elif parts[0] == "btn_back_to_chat_choose":
+    elif callback_data.action == "back_to_chat_choose":
         chats = (storage.users_cache.get(str(call.from_user.id)) or {}).get("chats")
         kb = await choose_chat_keyboard(chats, bot) if chats else None
         if kb and kb.inline_keyboard:
@@ -166,7 +171,3 @@ async def pm_buttons_handler(call: types.CallbackQuery, storage, state: FSMConte
                                         chat_id=call.message.chat.id,
                                         message_id=call.message.message_id, parse_mode="Markdown")
     await call.answer()
-
-
-
-

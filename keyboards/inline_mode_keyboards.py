@@ -1,12 +1,21 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from keyboards.callbacks import BtnCallback
 
 
 def inquery_keyboard(cmd_id: str, user_id: str):
-    kb = [[InlineKeyboardButton(text ="Принять", callback_data=f"btn_accept {cmd_id} {user_id}",
-                                style="success"),
-           InlineKeyboardButton(text="Отказаться", callback_data=f"btn_deny {cmd_id} {user_id}",
-                                style="danger")]]
+    kb = [[
+        InlineKeyboardButton(
+            text="Принять",
+            callback_data=BtnCallback(action="accept", cmd_id=cmd_id, user_id=str(user_id)).pack(),
+            style="success",
+        ),
+        InlineKeyboardButton(
+            text="Отказаться",
+            callback_data=BtnCallback(action="deny", cmd_id=cmd_id, user_id=str(user_id)).pack(),
+            style="danger",
+        ),
+    ]]
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 

@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 import config
 from handlers.create_command import CreateCmd
 from keyboards.pm_mode_keyboards import command_details_keyboard, back_cmd_menu_keyboard, \
-    choose_chat_keyboard, chat_command_details_keyboard, big_keyboard
+    choose_chat_keyboard, chat_command_details_keyboard, big_keyboard, delete_message_keyboard
 from utils.menus import cmd_menu
 
 pm_commands_router = Router()
@@ -68,12 +68,11 @@ async def start_worker(message: types.Message, storage, bot, state):
 @pm_commands_router.message(F.text == "📋 Мои команды")
 @pm_commands_router.message(Command("my_commands"))
 async def my_command_worker(message: types.Message, state: FSMContext, storage, bot):
-    bot_message = await message.answer(text="_Загрузка..._", parse_mode="Markdown")
     if str(message.from_user.id) in config.ADMINS and len(message.text.split()) == 2:
         target_id = message.text.split()[1]
-        await cmd_menu(bot_message.message_id, message, bot, storage, target_id)
+        await cmd_menu(message, bot, storage, target_id)
         return
-    await cmd_menu(bot_message.message_id, message, bot, storage)
+    await cmd_menu(message, bot, storage)
 
 
 @pm_commands_router.message(F.text == "💚 Помощь")
@@ -94,7 +93,7 @@ async def create_command(message: types.Message, storage, state: FSMContext):
     if len(storage.commands_cache.get(str(message.from_user.id), [])) < config.LIMIT_OF_COMMANDS:
         await message.answer(
             text="*Введите название своей команды*\n\n\\[Твой ник] хочет *ТЕКСТ*\n\n(_Этот текст будет отображаться после слова «хочет» и использоваться как триггер в чатах. Пример:_ `Поцеловать`)",
-            reply_markup=back_cmd_menu_keyboard(),
+            reply_markup=delete_message_keyboard(message),
             parse_mode="Markdown")
         await state.set_state(CreateCmd.title)
     else:
