@@ -1,11 +1,12 @@
 import asyncio
+from contextlib import suppress
 import html
 import time
 from aiogram.filters import Command
 from aiogram import Router, F, types
 from aiogram.types import ChatMemberUpdated
 from aiogram.filters import ChatMemberUpdatedFilter, IS_ADMIN, IS_NOT_MEMBER, MEMBER, RESTRICTED
-from aiogram.exceptions import TelegramForbiddenError
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
 import config
 from keyboards.inline_mode_keyboards import response_keyboard
@@ -85,8 +86,10 @@ async def refresh_worker(message, storage, bot):
     await update_admins(admins, str(message.chat.id), bot, storage)
     msg = await message.answer("*Список админов обновлен*", parse_mode="Markdown")
     await asyncio.sleep(config.SERVICE_MESSAGES_TIMEOUT)
-    await msg.delete()
-    await message.delete()
+    with suppress(TelegramBadRequest):
+        await msg.delete()
+    with suppress(TelegramBadRequest):
+        await message.delete()
 
 
 @chat_mode_router.message(Command("chat_commands"))
@@ -102,8 +105,10 @@ async def help_worker(message, storage):
         text=text,
         parse_mode="Markdown")
     await asyncio.sleep(config.SERVICE_MESSAGES_TIMEOUT)
-    await bot_message.delete()
-    await message.delete()
+    with suppress(TelegramBadRequest):
+        await bot_message.delete()
+    with suppress(TelegramBadRequest):
+        await message.delete()
 
 
 def _migrate_chat(old_chat_id: str, new_chat_id: str, storage) -> None:
