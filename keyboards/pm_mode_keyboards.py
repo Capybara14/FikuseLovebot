@@ -67,9 +67,8 @@ def back_cmd_menu_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 
-def delete_message_keyboard(message):
-    kb = [[InlineKeyboardButton(text="⤴️ Вернуться",
-                                callback_data=BtnCallback(action="delete_msg", message_id=str(message.message_id)).pack())]]
+def cancel_cmd_create_keyboard():
+    kb = [[InlineKeyboardButton(text="⤴️ Отменить создание", callback_data=BtnCallback(action="back_cmd_menu").pack())]]
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 
@@ -120,12 +119,39 @@ def chat_command_details_keyboard(chat_id, cmd_id):
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 
-def chat_commands_keyboard(bot_message_id, chat_id):
-    text = f"@add_cmd:{chat_id}:{bot_message_id}"
-    kb = [
-        [InlineKeyboardButton(text="➕ Добавить команду", switch_inline_query_current_chat=text, style="primary")],
-        [InlineKeyboardButton(text="⤴️ Вернуться", callback_data=BtnCallback(action="back_to_chat_choose").pack())],
-    ]
+def chat_commands_keyboard(chat_id: str, storage, page: int = 0):
+    cmds = storage.chats_cache.get(str(chat_id), {}).get("cmds", {})
+    per_page = config.COMMANDS_PER_PAGE
+    total_pages = max(1, (len(cmds) + per_page - 1) // per_page)
+    page = max(0, min(page, total_pages - 1))
+
+    kb = []
+    if total_pages > 1:
+        prev_btn = (
+            InlineKeyboardButton(
+                text="⬅️",
+                callback_data=BtnCallback(action="chat_cmd_page", chat_id=str(chat_id), page=page - 1).pack(),
+                style="primary",
+            )
+            if page > 0
+            else InlineKeyboardButton(text="\u200b", callback_data=BtnCallback(action="noop").pack())
+        )
+        counter_btn = InlineKeyboardButton(
+            text=f"{page + 1}/{total_pages}",
+            callback_data=BtnCallback(action="noop").pack(),
+            style="primary",
+        )
+        next_btn = (
+            InlineKeyboardButton(
+                text="➡️",
+                callback_data=BtnCallback(action="chat_cmd_page", chat_id=str(chat_id), page=page + 1).pack(),
+                style="primary",
+            )
+            if page < total_pages - 1
+            else InlineKeyboardButton(text="\u200b", callback_data=BtnCallback(action="noop").pack())
+        )
+        kb.append([prev_btn, counter_btn, next_btn])
+    kb.append([InlineKeyboardButton(text="⤴️ Вернуться", callback_data=BtnCallback(action="back_to_chat_choose").pack())])
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 
@@ -134,6 +160,17 @@ def back_chat_menu_keyboard(chat_id):
         InlineKeyboardButton(
             text="⤴️ Вернуться",
             callback_data=BtnCallback(action="chat_cmd_choose", chat_id=str(chat_id)).pack(),
+        )
+    ]]
+    return InlineKeyboardMarkup(inline_keyboard=kb)
+
+
+def add_to_chat_keyboard():
+    kb = [[
+        InlineKeyboardButton(
+            text="➕ Добавить в чат",
+            url=f"https://t.me/{config.BOT_USERNAME}?startgroup=true",
+            style="primary",
         )
     ]]
     return InlineKeyboardMarkup(inline_keyboard=kb)

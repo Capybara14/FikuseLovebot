@@ -7,11 +7,11 @@ import config
 from handlers.create_command import CreateCmd, successfully_create
 from handlers.pm_commands_handler import create_command
 from keyboards.callbacks import BtnCallback
-from keyboards.pm_mode_keyboards import back_cmd_menu_keyboard, commands_keyboard, choose_chat_keyboard, \
-    chat_commands_keyboard, back_chat_menu_keyboard
+from keyboards.pm_mode_keyboards import back_cmd_menu_keyboard, commands_keyboard, \
+    back_chat_menu_keyboard, command_details_keyboard, chat_command_details_keyboard
 from keyboards.inline_mode_keyboards import response_keyboard
 from utils.gender import gender_match_text
-from utils.menus import chat_menu, cmd_menu
+from utils.menus import chat_menu, cmd_menu, choose_chat_menu
 from utils.text import html_link_to_user
 
 callback_handler_router = Router()
@@ -71,6 +71,17 @@ async def inline_buttons_handler(call: types.CallbackQuery, callback_data: BtnCa
             )
 
 
+def format_command_details(cmd):
+    return (
+        f"*Детали команды:*\n\n"
+        f"   • _Название:_ {cmd['title']}\n"
+        f"   • _Текст согласия:_ {cmd['text_response']}\n"
+        f"   • _Текст отказа:_ {cmd['text_deny']}\n"
+        f"   • _Стикер-превью:_ {'есть' if cmd.get('thumb_url', None) else 'отсутствует'}\n\n"
+        f"_Число использований:_ {cmd['uses_count']}\n"
+    )
+
+
 # 2. Кнопки из обычных сообщений в ЛС
 @callback_handler_router.callback_query(F.message, BtnCallback.filter())
 async def pm_buttons_handler(call: types.CallbackQuery, callback_data: BtnCallback, storage, state: FSMContext, bot):
@@ -78,8 +89,45 @@ async def pm_buttons_handler(call: types.CallbackQuery, callback_data: BtnCallba
         await call.answer()
         return
 
+    if callback_data.action == "command_details":
+        cmd_id = callback_data.cmd_id
+        cmd = storage.find_cmd(cmd_id)
+        if not cmd:
+            await call.answer()
+            return
+        await bot.edit_message_text(
+            text=format_command_details(cmd),
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            reply_markup=command_details_keyboard(cmd_id),
+            parse_mode="Markdown",
+        )
+        await call.answer()
+        return
+
+    if callback_data.action == "chat_cmd_details":
+        chat_id = callback_data.chat_id
+        cmd_id = callback_data.cmd_id
+        user_chats = (storage.users_cache.get(str(call.from_user.id)) or {}).get("chats", [])
+        if chat_id not in user_chats:
+            await call.answer()
+            return
+        cmd = storage.find_cmd(cmd_id)
+        if not cmd:
+            await call.answer()
+            return
+        await bot.edit_message_text(
+            text=format_command_details(cmd),
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            reply_markup=chat_command_details_keyboard(chat_id, cmd_id),
+            parse_mode="Markdown",
+        )
+        await call.answer()
+        return
+
     if callback_data.action == "delete_msg":
-        await bot.delete_message(chat_id=call.message.chat.id, message_id=int(callback_data.message_id))
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         await call.answer()
         return
 
@@ -152,22 +200,13 @@ async def pm_buttons_handler(call: types.CallbackQuery, callback_data: BtnCallba
             text=text, reply_markup=back_chat_menu_keyboard(chat_id),
             parse_mode="Markdown")
 
-    elif callback_data.action == "chat_cmd_choose":
+    elif callback_data.action in ("chat_cmd_choose", "chat_cmd_page"):
         chat_id = callback_data.chat_id
+        page = callback_data.page or 0
         chat = await bot.get_chat(chat_id)
         title = chat.title or f"{chat_id}"
-        await chat_menu(call.message.message_id, chat_id, title, storage, call.message, bot)
+        await chat_menu(call.message.message_id, chat_id, title, storage, call.message, bot, page=page)
 
     elif callback_data.action == "back_to_chat_choose":
-        chats = (storage.users_cache.get(str(call.from_user.id)) or {}).get("chats")
-        kb = await choose_chat_keyboard(chats, bot) if chats else None
-        if kb and kb.inline_keyboard:
-            await bot.edit_message_text("*Выберите чат для настройки: *", chat_id=call.message.chat.id,
-                                        message_id=call.message.message_id,
-                                        parse_mode="Markdown",
-                                        reply_markup=kb)
-        else:
-            await bot.edit_message_text("❗ *Вы не являетесь админом ни одного из чатов, где есть бот*",
-                                        chat_id=call.message.chat.id,
-                                        message_id=call.message.message_id, parse_mode="Markdown")
+        await choose_chat_menu(call.message, bot, storage, call.from_user.id, bot_message_id=call.message.message_id)
     await call.answer()

@@ -7,7 +7,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
 from database.sticker import process_and_upload_sticker
-from keyboards.pm_mode_keyboards import final_step_keyboard, back_cmd_menu_keyboard
+from keyboards.pm_mode_keyboards import final_step_keyboard, back_cmd_menu_keyboard, \
+    cancel_cmd_create_keyboard
 from utils.text import clean_md
 
 create_command_router = Router()
@@ -26,7 +27,7 @@ async def enter_the_name(message: types.Message, state: FSMContext):
     await state.update_data(title=clean_md(message.text).capitalize().strip())
     await message.answer(
         text="*Введите эмодзи для команды*\n\n(_Будет располагаться рядом с названием_)",
-        parse_mode="Markdown"
+        parse_mode="Markdown", reply_markup=cancel_cmd_create_keyboard()
     )
     await state.set_state(CreateCmd.emoji)
 
@@ -35,7 +36,7 @@ async def enter_the_name(message: types.Message, state: FSMContext):
 async def enter_the_emoji(message: types.Message, state: FSMContext):
     await state.update_data(title=clean_md(message.text) + " " + await state.get_value("title"))
     await message.answer(text="*Отправьте стикер для иконки команды*\n\n(_Напишите /skip для пропуска_)",
-                        parse_mode="Markdown")
+                        parse_mode="Markdown", reply_markup=cancel_cmd_create_keyboard())
     await state.set_state(CreateCmd.thumb_url)
 
 
@@ -44,7 +45,7 @@ async def skip_sticker(message: types.Message, state: FSMContext):
     await state.update_data(thumb_url=None)
     await message.answer(
         text="*Введите текст совершённого действия*\n\n\\[Твой ник]  *ТЕКСТ*  \\[Ник того, кто принял]\n\n(_Пример: _`поцеловал(а)`)",
-        parse_mode="Markdown")
+        parse_mode="Markdown", reply_markup=cancel_cmd_create_keyboard())
     await state.set_state(CreateCmd.response)
 
 
@@ -69,7 +70,7 @@ async def enter_the_sticker(message: types.Message, bot: Bot, state: FSMContext)
     await state.update_data(thumb_url=thumb_url)
     await message.answer(
         text="*Введите текст совершённого действия*\n\n\\[Твой ник]  *ТЕКСТ*  \\[Ник того, кто принял]\n\n(_Пример: _`поцеловал(а)`)",
-        parse_mode="Markdown"
+        parse_mode="Markdown", reply_markup=cancel_cmd_create_keyboard()
     )
     await state.set_state(CreateCmd.response)
 

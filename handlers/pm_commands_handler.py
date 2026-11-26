@@ -5,9 +5,9 @@ from aiogram.fsm.context import FSMContext
 
 import config
 from handlers.create_command import CreateCmd
-from keyboards.pm_mode_keyboards import command_details_keyboard, back_cmd_menu_keyboard, \
-    choose_chat_keyboard, chat_command_details_keyboard, big_keyboard, delete_message_keyboard
-from utils.menus import cmd_menu
+from keyboards.pm_mode_keyboards import back_cmd_menu_keyboard, \
+    big_keyboard, cancel_cmd_create_keyboard
+from utils.menus import cmd_menu, choose_chat_menu
 
 pm_commands_router = Router()
 pm_commands_router.message.filter(F.chat.type == ChatType.PRIVATE)
@@ -23,45 +23,6 @@ async def start_worker(message: types.Message, storage, bot, state):
             parse_mode="Markdown", reply_markup=big_keyboard())
     elif parts[1] == "create_command":
         await create_command(message, storage, state)
-    elif parts[1].split("_")[0] == "chatcmd":
-        option_parts = parts[1].split("_")[1:]
-        cmd_id = option_parts[0] + "_" + option_parts[1]
-        chat_id = option_parts[2]
-        bot_message_id = int(option_parts[3])
-        if chat_id in storage.users_cache[str(message.from_user.id)].get("chats"):
-            await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
-            cmd = storage.find_cmd(cmd_id)
-            if not cmd: return
-            await bot.edit_message_text(text=
-                                        f"*Детали команды:*\n\n"
-                                        f"   • _Название:_ {cmd['title']}\n"
-                                        f"   • _Текст согласия:_ {cmd['text_response']}\n"
-                                        f"   • _Текст отказа:_ {cmd['text_deny']}\n"
-                                        f"   • _Стикер-превью:_ {"есть" if cmd.get("thumb_url", None) else "отсутствует"}\n\n"
-                                        f"_Число использований:_ {cmd['uses_count']}\n",
-                                        chat_id=message.chat.id,
-                                        message_id=bot_message_id,
-                                        reply_markup=chat_command_details_keyboard(chat_id, cmd_id),
-                                        parse_mode="Markdown")
-
-    elif parts[1].split("_")[0] == "mycmd":
-        option_parts = parts[1].split("_")[1:]
-        user_id = option_parts[0]
-        cmd_id = user_id + "_" + option_parts[1]
-        bot_message = int(option_parts[2])
-        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
-        cmd = storage.find_cmd(cmd_id)
-        if not cmd: return
-        await bot.edit_message_text(text=
-                                    f"*Детали команды:*\n\n"
-                                    f"   • _Название:_ {cmd['title']}\n"
-                                    f"   • _Текст согласия:_ {cmd['text_response']}\n"
-                                    f"   • _Текст отказа:_ {cmd['text_deny']}\n"
-                                    f"   • _Стикер-превью:_ {"есть" if cmd.get("thumb_url", None) else "отсутствует"}\n\n"
-                                    f"_Число использований:_ {cmd['uses_count']}\n",
-                                    chat_id=message.chat.id,
-                                    message_id=bot_message,
-                                    reply_markup=command_details_keyboard(cmd_id), parse_mode="Markdown")
 
 
 # Меню команд
@@ -93,7 +54,7 @@ async def create_command(message: types.Message, storage, state: FSMContext):
     if len(storage.commands_cache.get(str(message.from_user.id), [])) < config.LIMIT_OF_COMMANDS:
         await message.answer(
             text="*Введите название своей команды*\n\n\\[Твой ник] хочет *ТЕКСТ*\n\n(_Этот текст будет отображаться после слова «хочет» и использоваться как триггер в чатах. Пример:_ `Поцеловать`)",
-            reply_markup=delete_message_keyboard(message),
+            reply_markup=cancel_cmd_create_keyboard(),
             parse_mode="Markdown")
         await state.set_state(CreateCmd.title)
     else:
@@ -122,9 +83,4 @@ async def unban_worker(message, storage):
 @pm_commands_router.message(F.text == "💬 Мои чаты")
 @pm_commands_router.message(Command("my_chats"))
 async def my_chats_worker(message, storage, bot):
-    chats = (storage.users_cache.get(str(message.from_user.id)) or {}).get("chats")
-    kb = await choose_chat_keyboard(chats, bot) if chats else None
-    if kb and kb.inline_keyboard:
-        await message.answer("*Выберите чат для настройки:* ", parse_mode="Markdown", reply_markup=kb)
-    else:
-        await message.answer("❗ *Вы не являетесь админом ни одного из чатов, где есть бот*", parse_mode="Markdown")
+    await choose_chat_menu(message, bot, storage, message.from_user.id)
