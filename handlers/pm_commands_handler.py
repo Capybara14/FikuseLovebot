@@ -53,7 +53,7 @@ async def create_command_worker(message, storage, state):
 async def create_command(message: types.Message, storage, state: FSMContext):
     if len(storage.commands_cache.get(str(message.from_user.id), [])) < config.LIMIT_OF_COMMANDS:
         await message.answer(
-            text="*Введите название своей команды*\n\n\\[Твой ник] хочет *ТЕКСТ*\n\n(_Этот текст будет отображаться после слова «хочет» и использоваться как триггер в чатах. Пример:_ `Поцеловать`)",
+            text="*Введите название своей команды*\n\n\\[Твой ник] хочет *ТЕКСТ*\n\n(_Этот текст будет использоваться как триггер в чатах. Пример:_ `Поцеловать`)",
             reply_markup=cancel_cmd_create_keyboard(),
             parse_mode="Markdown")
         await state.set_state(CreateCmd.title)
